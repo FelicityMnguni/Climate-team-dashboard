@@ -32,8 +32,8 @@ if uploaded_file:
         col1, col2, col3 = st.columns(3)
 
         col1.metric("Total Records", len(df))
-        col2.metric("Total Themes", len(df["Topic"].unique()))
-        col3.metric("Total Regions", len(df["Region impacted"].unique()))
+        col2.metric("Total Themes", len(df["Theme"].unique()))
+        col3.metric("Total Regions", len(df["Region"].unique()))
 
         # =============================
         # 📊 SUMMARY TABLE
@@ -51,7 +51,7 @@ if uploaded_file:
                 dashboard["trend"],
                 x="Date",
                 y="count",
-                color="Topic",
+                color="Theme",
                 title="Theme Mentions Over Time"
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -68,7 +68,7 @@ if uploaded_file:
             sns.heatmap(dashboard["heatmap"], annot=True, fmt=".0f", cmap="coolwarm")
             st.pyplot(plt)
         else:
-            st.warning("No Region impacted column found or empty heatmap data.")
+            st.warning("No Region column found or empty heatmap data.")
 
         # =============================
         # 🔍 FILTERS (Executive view)
@@ -77,10 +77,10 @@ if uploaded_file:
 
         theme_filter = st.selectbox(
             "Select Theme",
-            df["Topic"].unique()
+            df["Theme"].unique()
         )
 
-        filtered_df = df[df["Topic"] == theme_filter]
+        filtered_df = df[df["Theme"] == theme_filter]
         st.dataframe(filtered_df, use_container_width=True)
 
         st.success("Dashboard loaded successfully")
