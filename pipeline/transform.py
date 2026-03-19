@@ -17,7 +17,14 @@ def transform_data(df):
         df["Risk Score"] = pd.to_numeric(df["Risk Score"], errors="coerce")
 
     # Fill missing categories
-    df["Theme / Topic"] = df.get("Theme / Topic", "Unknown").fillna("Unknown")
-    df["Region"] = df.get("Region", "Unknown").fillna("Unknown")
+    if "Theme / Topic" in df.columns:
+       df["Theme / Topic"] = df["Theme / Topic"].fillna("Unknown")
+    else:
+       df["Theme / Topic"] = "Unknown"
+
+    if "Region" in df.columns:
+       df["Region"] = df["Region"].fillna("Unknown")
+    else:
+       df["Region"] = "Unknown"
 
     return df
