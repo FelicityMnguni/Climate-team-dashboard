@@ -1,4 +1,8 @@
 # config.py - Streamlit prototype version
+import os
+
+ERROR_LOG_PATH = os.path.join(os.getcwd(), "error_logs") + os.sep
+
 # -----------------------------
 # IMS weights for scoring
 # -----------------------------
