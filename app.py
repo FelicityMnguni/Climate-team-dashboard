@@ -72,24 +72,37 @@ if uploaded_file:
         else:
             st.warning("No Date data for trends.")
 
-        # --- HOT TOPICS BY REGION (MAP) ---
-        st.subheader("Hot Topics by Region")
-        if not filtered_df.empty:
-            map_data = filtered_df.groupby(["Region","Theme"]).agg(count=("Item","count")).reset_index()
+        # --- MAP: Hot Topics by Region ---
+st.subheader("Hot Topics by Region")
+
+if uploaded_file:
+    try:
+        # Group by Region and Theme, counting Items
+        if not df.empty and "Item" in df.columns:
+            map_data = (
+                df.groupby(["Region", "Topic"])
+                  .agg(count=("Item", "count"))
+                  .reset_index()
+            )
+
+            # Plot interactive geographic scatter map
             fig_map = px.scatter_geo(
                 map_data,
-                locations="Region",      
-                locationmode="country names",
-                color="Theme",
-                size="count",
-                hover_name="Theme",
+                locations="Region",            # Region names (must be recognized by Plotly)
+                locationmode="country names",  # Adjust if you have subregions
+                color="Topic",                 # Show different Themes
+                size="count",                  # Bubble size proportional to number of Items
+                hover_name="Topic",
                 hover_data=["count"],
                 projection="natural earth",
                 title="Hot Topics Across Regions"
             )
             st.plotly_chart(fig_map, use_container_width=True)
         else:
-            st.warning("No region data available for map.")
+            st.warning("No region or Item data available for map.")
+
+    except Exception as e:
+        st.error(f"Error in Hot Topics map: {e}")
 
         # --- HEATMAP ---
         st.subheader("Theme vs Region Heatmap")
