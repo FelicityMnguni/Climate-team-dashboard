@@ -67,7 +67,7 @@ def build_dimensions(bi, risk):
     # Theme
     dim_theme = bi[["Topic"]].drop_duplicates().reset_index(drop=True)
     dim_theme["ThemeKey"] = dim_theme.index + 1
-    dim_theme["Theme"] = dim_theme["Theme / Topic"].str.strip()
+    dim_theme["Theme"] = dim_theme["Topic"].str.strip()
     
     # Region
     dim_region = bi[["Region impacted"]].drop_duplicates().reset_index(drop=True)
