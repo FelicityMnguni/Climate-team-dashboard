@@ -1,23 +1,10 @@
 # run_pipeline.py
-from extract import extract_all
-from transform import transform_all
-from load import export_all
-from load import EXPORT_PATH  # import path for logging
+from pipeline.extract import extract_all
+from pipeline.transform import transform_all
+from pipeline.load import prepare_dashboard_data  # your load function
 
-def run():
-    print("Starting ETL pipeline...")
-
-    # 1. Extract
-    raw_data = extract_all()
-    print("Data extraction complete.")
-
-    # 2. Transform
+def run_pipeline(bi_file, risk_file):
+    raw_data = extract_all(bi_file, risk_file)
     fact, dims = transform_all(raw_data)
-    print("Data transformation complete.")
-
-    # 3. Load
-    export_all(fact, dims)
-    print(f"ETL complete. All files saved to: {EXPORT_PATH}")
-
-if __name__ == "__main__":
-    run()
+    dashboard_data = prepare_dashboard_data(fact)  # aggregated summaries for dashboard
+    return fact, dims, dashboard_data
