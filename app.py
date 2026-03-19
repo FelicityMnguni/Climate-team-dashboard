@@ -7,13 +7,13 @@ from pipeline.run_pipeline import run_pipeline
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="Executive Intelligence Dashboard",
+    page_title="Climate Team - Business Intelligence",
     layout="wide"
 )
 
 # --- HEADER ---
-st.title("Executive Intelligence Dashboard")
-st.markdown("Prototype for AI-driven risk and theme monitoring")
+st.title("EClimate Team - Business Intelligence")
+st.markdown("Prototype for AI-driven risk and theme monitoring developed by SASOL Climate Team")
 
 # --- SIDEBAR ---
 st.sidebar.header("Upload Data")
@@ -32,7 +32,7 @@ if uploaded_file:
         col1, col2, col3 = st.columns(3)
 
         col1.metric("Total Records", len(df))
-        col2.metric("Total Themes", len(df["Theme / Topic"].unique()))
+        col2.metric("Total Themes", len(df["Topic"].unique()))
         col3.metric("Total Regions", len(df["Region impacted"].unique()))
 
         # =============================
@@ -51,7 +51,7 @@ if uploaded_file:
                 dashboard["trend"],
                 x="Date",
                 y="count",
-                color="Theme / Topic",
+                color="Topic",
                 title="Theme Mentions Over Time"
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -77,10 +77,10 @@ if uploaded_file:
 
         theme_filter = st.selectbox(
             "Select Theme",
-            df["Theme / Topic"].unique()
+            df["Topic"].unique()
         )
 
-        filtered_df = df[df["Theme / Topic"] == theme_filter]
+        filtered_df = df[df["Topic"] == theme_filter]
         st.dataframe(filtered_df, use_container_width=True)
 
         st.success("Dashboard loaded successfully")
