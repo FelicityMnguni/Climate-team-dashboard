@@ -23,11 +23,6 @@ if uploaded_file:
         # Run pipeline: fact table, dims, dashboard
         df, dims, dashboard = run_pipeline(uploaded_file)
 
-        # Ensure Item exists in df for all plots
-        if "Item" not in df.columns:
-            st.error("The 'Item' column is missing from the dataset. Ensure your CSV includes 'Item'.")
-            st.stop()
-
         # =============================
         # 🔍 FILTERS
         # =============================
@@ -77,13 +72,13 @@ if uploaded_file:
         else:
             st.warning("No Date data for trends.")
 
-        # --- MAP: Hot Topics by Region ---
+        # --- MAP: Hot Topics by Region (using counts, no Item) ---
         st.subheader("Hot Topics by Region")
         if not df.empty:
             map_data = (
                 df.groupby(["Region", "Theme"])
-                  .agg(count=("Item", "count"))
-                  .reset_index()
+                  .size()
+                  .reset_index(name="count")
             )
             fig_map = px.scatter_geo(
                 map_data,
@@ -98,7 +93,7 @@ if uploaded_file:
             )
             st.plotly_chart(fig_map, use_container_width=True)
         else:
-            st.warning("No region or Item data available for map.")
+            st.warning("No region data available for map.")
 
         # --- HEATMAP ---
         st.subheader("Theme vs Region Heatmap")
@@ -116,7 +111,7 @@ if uploaded_file:
 
         # --- HOT TOPICS BAR CHART ---
         st.subheader("Top Hot Themes")
-        top_themes = filtered_df.groupby("Theme").agg(count=("Item","count")).reset_index().sort_values("count", ascending=False)
+        top_themes = filtered_df.groupby("Theme").size().reset_index(name="count").sort_values("count", ascending=False)
         fig_bar = px.bar(
             top_themes.head(10),
             x="Theme",
