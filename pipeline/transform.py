@@ -106,7 +106,7 @@ def build_fact(bi, dims):
     )
     
     # Drop raw text columns
-    fact = fact.drop(columns=["Topic", "Region impacted", "Horizon", "Urgency", "Item"])
+    fact = fact.drop(columns=["Topic", "Region impacted", "Horizon", "Urgency"])
     return fact
 
 def transform_all(data):
