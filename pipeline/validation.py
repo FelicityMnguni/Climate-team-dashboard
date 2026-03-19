@@ -1,5 +1,4 @@
 # validation.py
-# pipeline/validation.py
 import pandas as pd
 import os
 
