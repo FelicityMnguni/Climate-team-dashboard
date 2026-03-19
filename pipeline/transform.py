@@ -24,16 +24,16 @@ def compute_acceleration(bi):
     bi["Week"] = bi["Date"].dt.isocalendar().week
     bi["Year"] = bi["Date"].dt.year
 
-    weekly = bi.groupby(["Year","Week","Theme / Topic"]).size().reset_index(name="Count")
-    weekly["Rolling_4wk"] = weekly.groupby("Theme / Topic")["Count"].transform(
+    weekly = bi.groupby(["Year","Week","Topic"]).size().reset_index(name="Count")
+    weekly["Rolling_4wk"] = weekly.groupby("Topic")["Count"].transform(
         lambda x: x.rolling(4, min_periods=1).sum()
     )
-    weekly["Prior"] = weekly.groupby("Theme / Topic")["Rolling_4wk"].shift(1).fillna(0)
+    weekly["Prior"] = weekly.groupby("Topic")["Rolling_4wk"].shift(1).fillna(0)
     weekly["Acceleration"] = (weekly["Rolling_4wk"] - weekly["Prior"]) / weekly["Prior"].replace(0,1)
 
     return bi.merge(
-        weekly[["Year","Week","Theme / Topic","Acceleration"]],
-        on=["Year","Week","Theme / Topic"], how="left"
+        weekly[["Year","Week","Topic","Acceleration"]],
+        on=["Year","Week","Topic"], how="left"
     )
 
 def compute_scores(bi, risk):
@@ -65,7 +65,7 @@ def compute_escalation(bi):
 
 def build_dimensions(bi, risk):
     # Theme
-    dim_theme = bi[["Theme / Topic"]].drop_duplicates().reset_index(drop=True)
+    dim_theme = bi[["Topic"]].drop_duplicates().reset_index(drop=True)
     dim_theme["ThemeKey"] = dim_theme.index + 1
     dim_theme["Theme"] = dim_theme["Theme / Topic"].str.strip()
     
@@ -98,7 +98,7 @@ def build_fact(bi, dims):
     
     fact = (
         bi
-        .merge(dim_theme[["ThemeKey","Theme"]], left_on="Theme / Topic", right_on="Theme", how="left")
+        .merge(dim_theme[["ThemeKey","Theme"]], left_on="Topic", right_on="Theme", how="left")
         .merge(dim_region[["RegionKey","Region"]], left_on="Region impacted", right_on="Region", how="left")
         .merge(dim_horizon, left_on="Horizon", right_on="Horizon", how="left")
         .merge(dim_urgency, left_on="Urgency", right_on="Urgency", how="left")
@@ -106,7 +106,7 @@ def build_fact(bi, dims):
     )
     
     # Drop raw text columns
-    fact = fact.drop(columns=["Theme / Topic", "Region impacted", "Horizon", "Urgency", "Item"])
+    fact = fact.drop(columns=["Topic", "Region impacted", "Horizon", "Urgency", "Item"])
     return fact
 
 def transform_all(data):
