@@ -1,28 +1,31 @@
+# pipeline/load.py
 def prepare_dashboard_data(df):
-    """Prepare aggregated datasets for dashboard"""
+    """Prepare aggregated datasets for dashboard without Risk Score"""
 
-    # Summary metrics
+    # Ensure column names are clean
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+
+    # Use Item count instead of Risk Score
     summary = df.groupby("Theme / Topic").agg(
-        avg_risk=("Risk Score", "mean"),
-        max_risk=("Risk Score", "max"),
-        count=("Risk Score", "count")
+        count=("Item", "count")
     ).reset_index()
 
     # Trend data
     trend = None
     if "Date" in df.columns:
         trend = df.groupby(["Date", "Theme / Topic"]).agg(
-            risk=("Risk Score", "mean")
+            count=("Item", "count")
         ).reset_index()
 
     # Heatmap data
     heatmap = None
-    if "Region" in df.columns:
+    if "Region impacted" in df.columns:
         heatmap = df.pivot_table(
             index="Theme / Topic",
-            columns="Region",
-            values="Risk Score",
-            aggfunc="mean"
+            columns="Region impacted",
+            values="Item",
+            aggfunc="count"
         )
 
     return {
