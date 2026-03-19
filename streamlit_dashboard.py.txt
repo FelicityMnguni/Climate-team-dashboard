@@ -1,0 +1,90 @@
+# streamlit_dashboard.py
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from transform import transform_data
+from validation import validate_data
+from load import load_data
+from extract import extract_data
+from run_pipeline import run_pipeline
+
+
+# --- STREAMLIT PAGE CONFIG ---
+st.set_page_config(
+    page_title="Executive Dashboard Prototype",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+st.title("Executive Dashboard Prototype")
+st.markdown("""
+This is a prototype version of the executive dashboard. Upload your `bi_logging.csv` file to visualize the data.
+""")
+
+# --- FILE UPLOAD ---
+uploaded_file = st.file_uploader("Upload bi_logging.csv", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        # --- EXTRACT ---
+        st.info("Loading data...")
+        df_raw = pd.read_csv(uploaded_file)
+
+        # --- TRANSFORM ---
+        st.info("Transforming data...")
+        df_transformed = transform_data(df_raw)
+
+        # --- VALIDATE ---
+        st.info("Validating data...")
+        df_valid = validate_data(df_transformed)
+
+        # --- LOAD / PREPARE DASHBOARD DATA ---
+        st.info("Preparing dashboard visuals...")
+        # We skip actual DB load; just prepare summaries for visualization
+        # Example: aggregated metrics
+        summary = df_valid.groupby("Theme / Topic").agg({
+            "Risk Score": ["mean", "max"],
+            "Region": "nunique"
+        }).reset_index()
+        summary.columns = ["Theme / Topic", "Avg Risk Score", "Max Risk Score", "Region Count"]
+
+        # --- DASHBOARD LAYOUT ---
+        st.subheader("Summary Metrics")
+        st.dataframe(summary)
+
+        # --- TREND VISUALS ---
+        st.subheader("Risk Trends Over Time")
+        if "Date" in df_valid.columns:
+            df_valid["Date"] = pd.to_datetime(df_valid["Date"])
+            trend_data = df_valid.groupby(["Date", "Theme / Topic"]).agg({"Risk Score": "mean"}).reset_index()
+            plt.figure(figsize=(10,5))
+            sns.lineplot(data=trend_data, x="Date", y="Risk Score", hue="Theme / Topic")
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            st.pyplot(plt)
+        else:
+            st.warning("No 'Date' column found in uploaded CSV. Trend chart not available.")
+
+        # --- HEATMAP OF RISKS BY THEME & REGION ---
+        st.subheader("Risk Heatmap: Theme vs Region")
+        if "Region" in df_valid.columns:
+            heatmap_data = df_valid.pivot_table(
+                index="Theme / Topic",
+                columns="Region",
+                values="Risk Score",
+                aggfunc="mean"
+            )
+            plt.figure(figsize=(12,6))
+            sns.heatmap(heatmap_data, annot=True, fmt=".1f", cmap="Reds")
+            st.pyplot(plt)
+        else:
+            st.warning("No 'Region' column found. Heatmap not available.")
+
+        st.success("Dashboard loaded successfully!")
+
+    except Exception as e:
+        st.error(f"Error processing file: {e}")
+
+else:
+    st.info("Please upload your bi_logging.csv file to see the dashboard.")
