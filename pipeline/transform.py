@@ -1,23 +1,21 @@
 # transform.py
+# transform.py
 import pandas as pd
 import numpy as np
-from config import *
-from validation import *
+from ..config import *        # <- import config from one level up
+from .validation import *     # <- relative import inside pipeline package
 
 def clean_fields(bi):
-    # Strip column names
     bi.columns = [c.strip() for c in bi.columns]
-    
-    # Standardize
     bi["Horizon"] = bi["Horizon"].astype(str).str.strip().str.upper()
     bi["Urgency"] = bi["Urgency"].astype(str).str.strip().str.title()
     bi["Region impacted"] = bi["Region impacted"].astype(str).str.strip()
     
-    # Validate and filter invalid rows
+    # Relative validation
     bi = validate_horizon(bi)
     bi = validate_urgency(bi)
-    
     return bi
+
 
 def compute_acceleration(bi):
     bi = bi.sort_values("Date")
