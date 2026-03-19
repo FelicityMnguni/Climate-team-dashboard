@@ -12,8 +12,8 @@ st.set_page_config(
 )
 
 # --- HEADER ---
-st.title("EClimate Team - Business Intelligence")
-st.markdown("Prototype for AI-driven risk and theme monitoring developed by SASOL Climate Team")
+st.title("Climate Team - Business Intelligence")
+st.markdown("Prototype for risk monitoring developed by SASOL Climate Team")
 
 # --- SIDEBAR ---
 st.sidebar.header("Upload Data")
