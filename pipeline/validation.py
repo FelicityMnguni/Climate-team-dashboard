@@ -1,13 +1,7 @@
 # validation.py
 # pipeline/validation.py
 import pandas as pd
-from config import ERROR_LOG_PATH
 import os
-
-def log_invalid(df, filename):
-    if not os.path.exists(ERROR_LOG_PATH):
-        os.makedirs(ERROR_LOG_PATH)
-    df.to_csv(f"{ERROR_LOG_PATH}{filename}", index=False)
 
 def validate_horizon(df):
     valid = ["H1","H2","H3"]
@@ -24,3 +18,7 @@ def validate_urgency(df):
         log_invalid(invalid_rows, "invalid_urgency.csv")
         df = df[df["Urgency"].isin(valid)]
     return df
+
+def log_invalid(df, filename):
+    # Do nothing
+    pass
