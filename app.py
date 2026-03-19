@@ -1,8 +1,3 @@
-# app.py
-import sys
-import os
-sys.path.append(os.path.abspath("."))
-
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -22,26 +17,24 @@ st.markdown("Prototype for AI-driven risk and theme monitoring")
 
 # --- SIDEBAR ---
 st.sidebar.header("Upload Data")
-bi_file = st.sidebar.file_uploader("Upload BI Logging CSV", type=["csv"])
-risk_file = st.sidebar.file_uploader("Upload Internal Risks CSV", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload bi_logging.csv", type=["csv"])
 
 # --- MAIN LOGIC ---
-if bi_file and risk_file:
+if uploaded_file:
 
     try:
-        # Run full ETL pipeline
-        fact, dims, dashboard = run_pipeline(bi_file, risk_file)
-        df = fact  # Use the fact table for metrics and drilldown
+        df, dashboard = run_pipeline(uploaded_file)
 
         # =============================
         # 🔢 KPI SECTION
         # =============================
         st.subheader("Key Metrics")
+
         col1, col2, col3 = st.columns(3)
 
         col1.metric("Total Records", len(df))
-        col2.metric("Avg Risk", round(df["Risk"].mean(), 2))
-        col3.metric("Max Risk", round(df["Risk"].max(), 2))
+        col2.metric("Avg Risk Score", round(df["Risk Score"].mean(), 2))
+        col3.metric("Max Risk Score", round(df["Risk Score"].max(), 2))
 
         # =============================
         # 📊 SUMMARY TABLE
@@ -53,6 +46,7 @@ if bi_file and risk_file:
         # 📈 TREND CHART
         # =============================
         st.subheader("Risk Trends")
+
         if dashboard["trend"] is not None:
             fig = px.line(
                 dashboard["trend"],
@@ -63,37 +57,37 @@ if bi_file and risk_file:
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.warning("No trend data available. Check Date column.")
+            st.warning("No Date column found.")
 
         # =============================
         # 🔥 HEATMAP
         # =============================
         st.subheader("Risk Heatmap (Theme vs Region)")
+
         if dashboard["heatmap"] is not None:
-            fig, ax = plt.subplots(figsize=(10, 5))
-            sns.heatmap(dashboard["heatmap"], annot=True, fmt=".1f", ax=ax)
-            st.pyplot(fig)
-            plt.close(fig)
+            plt.figure(figsize=(10, 5))
+            sns.heatmap(dashboard["heatmap"], annot=True, fmt=".1f")
+            st.pyplot(plt)
         else:
-            st.warning("No heatmap data available. Check Region column.")
+            st.warning("No Region column found.")
 
         # =============================
         # 🔍 FILTERS (Executive view)
         # =============================
         st.subheader("Drilldown")
-        df["Theme / Topic"] = df["Theme / Topic"].fillna("Unknown")  # ensure no NaNs
+
         theme_filter = st.selectbox(
             "Select Theme",
             df["Theme / Topic"].unique()
         )
 
         filtered_df = df[df["Theme / Topic"] == theme_filter]
-        st.dataframe(filtered_df, use_container_width=True)
+        st.dataframe(filtered_df)
 
-        st.success("Dashboard loaded successfully!")
+        st.success("Dashboard loaded successfully")
 
     except Exception as e:
-        st.error(f"Error running pipeline: {e}")
+        st.error(f"Error: {e}")
 
 else:
-    st.info("Upload both BI logging and Internal Risks CSVs to begin.")
+    st.info("Upload a CSV file to begin")
