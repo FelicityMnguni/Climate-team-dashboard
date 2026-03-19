@@ -14,54 +14,52 @@ st.set_page_config(
 st.title("Climate Team Executive Dashboard")
 st.markdown("AI-driven risk monitoring prototype by SASOL Climate Team")
 
-# =============================
-# 🔍 FILTERS (Executive view)
-# =============================
-st.subheader("Filters")
-
-# Filter by Topic
-theme_filter = st.selectbox(
-    "Select Theme",
-    df["Topic"].unique()
-)
-
-# Filter by Potential Impact
-impact_filter = st.selectbox(
-    "Select Potential Impact",
-    ["All"] + df["Potential impact"].dropna().unique().tolist()
-)
-
-filtered_df = df[df["Topic"] == theme_filter]
-
-if impact_filter != "All":
-    filtered_df = filtered_df[filtered_df["Potential impact"] == impact_filter]
-
-st.dataframe(filtered_df, use_container_width=True)
 # --- SIDEBAR ---
 st.sidebar.header("Upload Data")
 uploaded_file = st.sidebar.file_uploader("Upload bi_logging.csv", type=["csv"])
 
 if uploaded_file:
     try:
+        # Run pipeline: fact table, dims, dashboard
         df, dims, dashboard = run_pipeline(uploaded_file)
+
+        # =============================
+        # 🔍 FILTERS (after df is defined!)
+        # =============================
+        st.subheader("Filters")
+        theme_filter = st.selectbox(
+            "Select Theme",
+            ["All"] + df["Theme"].dropna().unique().tolist()
+        )
+        impact_filter = st.selectbox(
+            "Select Potential Impact",
+            ["All"] + df["Potential impact"].dropna().unique().tolist()
+        )
+        region_filter = st.selectbox(
+            "Select Region",
+            ["All"] + df["Region"].dropna().unique().tolist()
+        )
+
+        filtered_df = df.copy()
+        if theme_filter != "All":
+            filtered_df = filtered_df[filtered_df["Theme"] == theme_filter]
+        if impact_filter != "All":
+            filtered_df = filtered_df[filtered_df["Potential impact"] == impact_filter]
+        if region_filter != "All":
+            filtered_df = filtered_df[filtered_df["Region"] == region_filter]
 
         # --- KPI CARDS ---
         st.subheader("Key Metrics")
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Records", len(df))
-        col2.metric("Total Themes", len(df["Theme"].unique()))
-        col3.metric("Total Regions", len(df["Region"].unique()))
-        col4.metric("Escalated Items", df["Escalation_Flag"].sum())
+        col1.metric("Total Records", len(filtered_df))
+        col2.metric("Total Themes", len(filtered_df["Theme"].unique()))
+        col3.metric("Total Regions", len(filtered_df["Region"].unique()))
+        col4.metric("Escalated Items", filtered_df["Escalation_Flag"].sum())
 
         # --- INTERACTIVE TREND ---
         st.subheader("Trends Over Time")
         if dashboard["trend"] is not None and not dashboard["trend"].empty:
-            themes_selected = st.multiselect(
-                "Select Themes to Display",
-                options=dashboard["trend"]["Theme"].unique(),
-                default=dashboard["trend"]["Theme"].unique()[:3]
-            )
-            trend_data = dashboard["trend"][dashboard["trend"]["Theme"].isin(themes_selected)]
+            trend_data = dashboard["trend"]
             fig_trend = px.line(
                 trend_data,
                 x="Date",
@@ -74,14 +72,13 @@ if uploaded_file:
         else:
             st.warning("No Date data for trends.")
 
-        # --- MAP: Hot Topics by Region ---
+        # --- HOT TOPICS BY REGION (MAP) ---
         st.subheader("Hot Topics by Region")
-        if not df.empty:
-            # Assuming 'Region' column contains recognizable location names
-            map_data = df.groupby(["Region","Theme"]).agg(count=("Item","count")).reset_index()
+        if not filtered_df.empty:
+            map_data = filtered_df.groupby(["Region","Theme"]).agg(count=("Item","count")).reset_index()
             fig_map = px.scatter_geo(
                 map_data,
-                locations="Region",      # Use country or region codes
+                locations="Region",      
                 locationmode="country names",
                 color="Theme",
                 size="count",
@@ -110,7 +107,7 @@ if uploaded_file:
 
         # --- HOT TOPICS BAR CHART ---
         st.subheader("Top Hot Themes")
-        top_themes = df.groupby("Theme").agg(count=("Item","count")).reset_index().sort_values("count", ascending=False)
+        top_themes = filtered_df.groupby("Theme").agg(count=("Item","count")).reset_index().sort_values("count", ascending=False)
         fig_bar = px.bar(
             top_themes.head(10),
             x="Theme",
@@ -122,16 +119,12 @@ if uploaded_file:
         st.plotly_chart(fig_bar, use_container_width=True)
 
         # --- DRILLDOWN TABLE ---
-        st.subheader("Drilldown by Theme and Region")
-        theme_filter = st.selectbox("Select Theme", df["Theme"].unique())
-        region_filter = st.selectbox("Select Region", df["Region"].unique())
-        filtered_df = df[(df["Theme"] == theme_filter) & (df["Region"] == region_filter)]
+        st.subheader("Drilldown Table")
         st.dataframe(filtered_df, use_container_width=True)
 
         st.success("Dashboard loaded successfully")
 
     except Exception as e:
         st.error(f"Error: {e}")
-
 else:
     st.info("Upload a CSV file to begin")
