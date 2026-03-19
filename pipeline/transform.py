@@ -1,20 +1,23 @@
-# transform.py
+# pipeline/transform.py
 import pandas as pd
 import numpy as np
-from ..config import *        # <- import config from one level up
-from .validation import *     # <- relative import inside pipeline package
+from config import *           # absolute import from root
+from pipeline.validation import *   # absolute import from pipeline package
 
 def clean_fields(bi):
+    bi = bi.copy()
+    # Strip column names
     bi.columns = [c.strip() for c in bi.columns]
+    
+    # Standardize fields
     bi["Horizon"] = bi["Horizon"].astype(str).str.strip().str.upper()
     bi["Urgency"] = bi["Urgency"].astype(str).str.strip().str.title()
     bi["Region impacted"] = bi["Region impacted"].astype(str).str.strip()
     
-    # Relative validation
+    # Validate using validation.py
     bi = validate_horizon(bi)
     bi = validate_urgency(bi)
     return bi
-
 
 def compute_acceleration(bi):
     bi = bi.sort_values("Date")
@@ -61,40 +64,38 @@ def compute_escalation(bi):
     return bi
 
 def build_dimensions(bi, risk):
-    # --- Theme dimension ---
+    # Theme
     dim_theme = bi[["Theme / Topic"]].drop_duplicates().reset_index(drop=True)
     dim_theme["ThemeKey"] = dim_theme.index + 1
     dim_theme["Theme"] = dim_theme["Theme / Topic"].str.strip()
     
-    # --- Region dimension ---
+    # Region
     dim_region = bi[["Region impacted"]].drop_duplicates().reset_index(drop=True)
     dim_region["RegionKey"] = dim_region.index + 1
     dim_region["Region"] = dim_region["Region impacted"].str.strip()
     
-    # --- Horizon dimension ---
+    # Horizon
     dim_horizon = pd.DataFrame({
-        "HorizonKey":[1,2,3],
-        "Horizon":["H1","H2","H3"]
+        "HorizonKey": [1,2,3],
+        "Horizon": ["H1","H2","H3"]
     })
     
-    # --- Urgency dimension ---
+    # Urgency
     dim_urgency = pd.DataFrame({
-        "UrgencyKey":[1,2,3,4],
-        "Urgency":["Very high","High","Medium","Low"]
+        "UrgencyKey": [1,2,3,4],
+        "Urgency": ["Very high","High","Medium","Low"]
     })
     
-    # --- Internal risk dimension ---
+    # Internal risk
     dim_risk = risk.reset_index(drop=True)
     dim_risk["InternalRiskKey"] = dim_risk.index + 1
     dim_risk["Risk Description"] = dim_risk["Risk Description"].str.strip()
     
     return dim_theme, dim_region, dim_horizon, dim_urgency, dim_risk
 
-
 def build_fact(bi, dims):
     dim_theme, dim_region, dim_horizon, dim_urgency, dim_risk = dims
     
-    # Merge using the keys, NOT the raw text columns
     fact = (
         bi
         .merge(dim_theme[["ThemeKey","Theme"]], left_on="Theme / Topic", right_on="Theme", how="left")
@@ -104,9 +105,8 @@ def build_fact(bi, dims):
         .merge(dim_risk[["InternalRiskKey","Risk Description"]], left_on="Item", right_on="Risk Description", how="left")
     )
     
-    # Drop raw text duplicates in fact table to avoid relationship issues
+    # Drop raw text columns
     fact = fact.drop(columns=["Theme / Topic", "Region impacted", "Horizon", "Urgency", "Item"])
-    
     return fact
 
 def transform_all(data):
