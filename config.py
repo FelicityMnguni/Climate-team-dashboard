@@ -1,6 +1,7 @@
 # config.py - Streamlit prototype version
 import os
 
+# Path to store validation errors
 ERROR_LOG_PATH = os.path.join(os.getcwd(), "error_logs") + os.sep
 
 # -----------------------------
