@@ -7,14 +7,14 @@ def prepare_dashboard_data(df):
     df.columns = df.columns.str.strip()
 
     # Use Item count instead of Risk Score
-    summary = df.groupby("Theme / Topic").agg(
+    summary = df.groupby("Topic").agg(
         count=("Item", "count")
     ).reset_index()
 
     # Trend data
     trend = None
     if "Date" in df.columns:
-        trend = df.groupby(["Date", "Theme / Topic"]).agg(
+        trend = df.groupby(["Date", "Topic"]).agg(
             count=("Item", "count")
         ).reset_index()
 
@@ -22,7 +22,7 @@ def prepare_dashboard_data(df):
     heatmap = None
     if "Region impacted" in df.columns:
         heatmap = df.pivot_table(
-            index="Theme / Topic",
+            index="Topic",
             columns="Region impacted",
             values="Item",
             aggfunc="count"
