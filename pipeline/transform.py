@@ -105,7 +105,7 @@ def build_fact(bi, dims):
         .merge(dim_risk[["InternalRiskKey","Risk Description"]], left_on="Item", right_on="Risk Description", how="left")
     )
     
-    # Drop raw text columns
+    # Drop raw text columns except 'Item' so it can be used in dashboard
     fact = fact.drop(columns=["Topic", "Region impacted", "Horizon", "Urgency"])
     return fact
 
