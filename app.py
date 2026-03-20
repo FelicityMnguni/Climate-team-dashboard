@@ -26,6 +26,14 @@ if uploaded_file:
         # =============================
         # 🔍 FILTERS
         # =============================
+        # --- KPI CARDS ---
+        st.subheader("Key Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Records", len(filtered_df))
+        col2.metric("Total Themes", len(filtered_df["Theme"].unique()))
+        col3.metric("Total Regions", len(filtered_df["Region"].unique()))
+        col4.metric("Escalated Items", filtered_df["Escalation_Flag"].sum())
+
         st.subheader("Filters")
         theme_filter = st.selectbox(
             "Select Theme",
@@ -48,29 +56,93 @@ if uploaded_file:
         if region_filter != "All":
             filtered_df = filtered_df[filtered_df["Region"] == region_filter]
 
-        # --- KPI CARDS ---
-        st.subheader("Key Metrics")
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Records", len(filtered_df))
-        col2.metric("Total Themes", len(filtered_df["Theme"].unique()))
-        col3.metric("Total Regions", len(filtered_df["Region"].unique()))
-        col4.metric("Escalated Items", filtered_df["Escalation_Flag"].sum())
-
         # --- INTERACTIVE TREND ---
-        st.subheader("Trends Over Time")
+        # --- INTERACTIVE BUBBLE TIMELINE WITH IMPACT ---
+        st.subheader("Themes Over Time - Bubble Timeline with Potential Impact")
+
         if dashboard["trend"] is not None and not dashboard["trend"].empty:
-            trend_data = dashboard["trend"]
-            fig_trend = px.line(
+            trend_data = dashboard["trend"].copy()
+    
+            # Ensure 'Potential impact' exists in trend data
+            if "Potential impact" not in trend_data.columns:
+                trend_data["Potential impact"] = "Mixed"  # fallback default
+    
+            # Filter themes if needed
+            themes_selected = st.multiselect(
+                "Select Themes to Display",
+                options=trend_data["Theme"].unique(),
+                default=trend_data["Theme"].unique()[:5]
+            )
+            trend_data = trend_data[trend_data["Theme"].isin(themes_selected)]
+    
+            # Bubble timeline: size = mentions, color = potential impact
+            fig_bubble = px.scatter(
                 trend_data,
                 x="Date",
-                y="count",
-                color="Theme",
-                hover_data=["count"],
-                title="Theme Mentions Over Time"
+                y="Theme",
+                size="count",
+                color="Potential impact",
+                hover_name="Theme",
+                hover_data={"count": True, "Date": True, "Potential impact": True},
+                size_max=40,
+                color_discrete_map={
+                    "Positive": "#2ca02c",  # green
+                    "Negative": "#d62728",  # red
+                     "Mixed": "#ff7f0e"      # orange
+                },
+                title="Hot Themes Over Time by Potential Impact"
             )
-            st.plotly_chart(fig_trend, use_container_width=True)
+    
+            fig_bubble.update_layout(
+                yaxis={'categoryorder':'total ascending'},
+                xaxis_title="Date",
+                yaxis_title="Theme",
+                legend_title="Potential Impact",
+                hovermode="closest"
+            )
+    
+            st.plotly_chart(fig_bubble, use_container_width=True)
+    
         else:
-            st.warning("No Date data for trends.")
+            st.warning("No trend data available for themes over time.")
+                st.subheader("Themes Over Time - Interactive Bubble Timeline")
+
+                if dashboard["trend"] is not None and not dashboard["trend"].empty:
+                    trend_data = dashboard["trend"].copy()
+    
+                    # Optional: filter themes if too many
+                    themes_selected = st.multiselect(
+                        "Select Themes to Display",
+                         options=trend_data["Theme"].unique(),
+                         default=trend_data["Theme"].unique()[:5]  # show top 5 by default
+                    )
+                    trend_data = trend_data[trend_data["Theme"].isin(themes_selected)]
+    
+            # Plotly scatter for bubble timeline
+            fig_bubble = px.scatter(
+                trend_data,
+                x="Date",
+                y="Theme",
+                size="count",          # bubble size = number of mentions
+                color="Theme",         # each theme has a unique color
+                hover_name="Theme",
+                hover_data={"count": True, "Date": True},
+                size_max=40,           # max bubble size
+                title="Hot Themes Over Time (Bubble Timeline)"
+            )
+    
+            fig_bubble.update_layout(
+                yaxis={'categoryorder':'total ascending'},  # orders themes by total mentions
+                xaxis_title="Date",
+                yaxis_title="Theme",
+                legend_title="Theme",
+                hovermode="closest"
+            )
+    
+        st.plotly_chart(fig_bubble, use_container_width=True)
+    
+        else:
+            st.warning("No trend data available for themes over time.")
 
         # --- MAP: Hot Topics by Region (using counts, no Item) ---
         st.subheader("Hot Topics by Region")
