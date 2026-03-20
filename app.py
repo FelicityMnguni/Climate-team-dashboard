@@ -128,18 +128,38 @@ if uploaded_file:
             st.warning("No region data available for map.")
 
         # --- HEATMAP ---
-        st.subheader("Theme vs Region Heatmap")
-        if dashboard["heatmap"] is not None and not dashboard["heatmap"].empty:
-            fig_heat = px.imshow(
-                dashboard["heatmap"],
-                text_auto=True,
-                color_continuous_scale="RdYlGn",
-                aspect="auto",
-                labels={"x":"Region", "y":"Theme", "color":"Count"}
+        # --- HEATMAP: Escalation by Theme and Region ---
+        st.subheader("Theme vs Region Heatmap (Escalation)")
+
+        if not filtered_df.empty:
+            # Aggregate escalation flags by Theme x Region
+            heat_data = (
+                filtered_df.groupby(["Theme", "Region"])["Escalation_Flag"]
+                .sum()
+                .reset_index()
+                .pivot(index="Theme", columns="Region", values="Escalation_Flag")
+                .fillna(0)  # Fill gaps with 0
             )
+
+            # Plot heatmap
+            fig_heat = px.imshow(
+                heat_data,
+                text_auto=True,  # Optional: you can remove if you want cleaner visuals
+                color_continuous_scale="Reds",
+                aspect="auto",
+                labels={"x": "Region", "y": "Theme", "color": "Escalated Items"},
+                title="Escalated Items by Theme and Region"
+            )
+
+            fig_heat.update_layout(
+                xaxis_title="Region",
+                yaxis_title="Theme",
+                yaxis=dict(autorange="reversed")  # So top theme is at top
+            )
+
             st.plotly_chart(fig_heat, use_container_width=True)
         else:
-            st.warning("No heatmap data available.")
+            st.warning("No data available for heatmap.")
 
         # --- HOT TOPICS BAR CHART ---
         st.subheader("Top Hot Themes")
