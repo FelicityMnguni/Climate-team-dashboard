@@ -158,24 +158,37 @@ if uploaded_file:
 
         map_data = filtered_df[filtered_df["Theme"].isin(selected_themes)]
 
+        # Aggregate counts per region (here region = country)
+        region_counts = (
+            map_data.groupby("Region")["count"]
+            .sum()
+            .reset_index()
+        )
         if map_data.empty:
             st.warning("No map data for the selected themes.")
         else:
-    # Aggregate counts per region for selected themes
-            region_counts = map_data.groupby("Region")["count"].sum().reset_index()
-
-            fig_map = px.bar(
+            fig_map = px.choropleth(
                 region_counts,
-                x="Region",
-                y="count",
-                color="Region",
-                title="Theme Occurrences by Region",
-                text="count"
+                locations="Region",            # your Region column (must match country names)
+                locationmode="country names",  # Plotly recognizes standard country names
+                color="count",
+                hover_name="Region",
+                hover_data=["count"],
+                color_continuous_scale="YlOrRd",
+                title="Regions Impacted by Selected Theme(s)"
+            )
+
+            fig_map.update_layout(
+                geo=dict(
+                    showframe=False,
+                    showcoastlines=True,
+                    projection_type='natural earth'
+                ),
+                margin={"r":0,"t":30,"l":0,"b":0}
             )
 
             st.plotly_chart(fig_map, use_container_width=True)
-    
-
+            
         # =============================
         # 🔥 HEATMAP
         # =============================
