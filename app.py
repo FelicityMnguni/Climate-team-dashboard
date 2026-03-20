@@ -12,7 +12,7 @@ st.set_page_config(
 
 # --- HEADER ---
 st.title("Climate Team Executive Dashboard")
-st.markdown("AI-driven risk monitoring prototype by SASOL Climate Team")
+st.markdown("Climate risk monitoring | Prototype by SASOL Climate Team")
 
 # --- SIDEBAR ---
 st.sidebar.header("Upload Data")
