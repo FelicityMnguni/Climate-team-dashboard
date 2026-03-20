@@ -50,6 +50,7 @@ if uploaded_file:
             filtered_df = filtered_df[filtered_df["Theme"] == theme_filter]
 
         if impact_filter != "All":
+            filtered_df = filtered_df[filtered_df["Potential impact"].isin(["Positive", "Negative"])]
             filtered_df = filtered_df[filtered_df["Potential impact"] == impact_filter]
 
         if region_filter != "All":
@@ -85,6 +86,10 @@ if uploaded_file:
             trend_data["Date"] = pd.to_datetime(trend_data["Date"], errors="coerce")
             trend_data = trend_data.dropna(subset=["Date"])
 
+            # Ensure only Positive/Negative in trend_data
+            if "Potential impact" in trend_data.columns:
+                trend_data = trend_data[trend_data["Potential impact"].isin(["Positive", "Negative"])]
+
             # Apply SAME filters to trend data
             if theme_filter != "All":
                 trend_data = trend_data[trend_data["Theme"] == theme_filter]
@@ -100,7 +105,7 @@ if uploaded_file:
                     x="Date",
                     y="Theme",
                     size="count",
-                    color="Potential impact",
+                    color="Potential impact" if "Potential impact" in trend_data.columns else None,
                     size_max=80,
                     color_discrete_map={
                         "Positive": "#2ca02c",
