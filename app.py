@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import plotly.express as px
 
@@ -28,6 +28,7 @@ if uploaded_file:
         # =============================
         # --- KPI CARDS ---
         st.subheader("Key Metrics")
+        filtered_df = df.copy()
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Records", len(filtered_df))
         col2.metric("Total Themes", len(filtered_df["Theme"].unique()))
@@ -48,7 +49,6 @@ if uploaded_file:
             ["All"] + df["Region"].dropna().unique().tolist()
         )
 
-        filtered_df = df.copy()
         if theme_filter != "All":
             filtered_df = filtered_df[filtered_df["Theme"] == theme_filter]
         if impact_filter != "All":
@@ -57,16 +57,15 @@ if uploaded_file:
             filtered_df = filtered_df[filtered_df["Region"] == region_filter]
 
         # --- INTERACTIVE TREND ---
-        # --- INTERACTIVE BUBBLE TIMELINE WITH IMPACT ---
         st.subheader("Themes Over Time - Bubble Timeline with Potential Impact")
 
         if dashboard["trend"] is not None and not dashboard["trend"].empty:
             trend_data = dashboard["trend"].copy()
-    
+
             # Ensure 'Potential impact' exists in trend data
             if "Potential impact" not in trend_data.columns:
                 trend_data["Potential impact"] = "Mixed"  # fallback default
-    
+
             # Filter themes if needed
             themes_selected = st.multiselect(
                 "Select Themes to Display",
@@ -74,7 +73,7 @@ if uploaded_file:
                 default=trend_data["Theme"].unique()[:5]
             )
             trend_data = trend_data[trend_data["Theme"].isin(themes_selected)]
-    
+
             # Bubble timeline: size = mentions, color = potential impact
             fig_bubble = px.scatter(
                 trend_data,
@@ -88,11 +87,11 @@ if uploaded_file:
                 color_discrete_map={
                     "Positive": "#2ca02c",  # green
                     "Negative": "#d62728",  # red
-                     "Mixed": "#ff7f0e"      # orange
+                    "Mixed": "#ff7f0e"      # orange
                 },
                 title="Hot Themes Over Time by Potential Impact"
             )
-    
+
             fig_bubble.update_layout(
                 yaxis={'categoryorder':'total ascending'},
                 xaxis_title="Date",
@@ -100,47 +99,8 @@ if uploaded_file:
                 legend_title="Potential Impact",
                 hovermode="closest"
             )
-    
+
             st.plotly_chart(fig_bubble, use_container_width=True)
-    
-            else:
-                st.warning("No trend data available for themes over time.")
-                
-            st.subheader("Themes Over Time")
-            if dashboard["trend"] is not None and not dashboard["trend"].empty:
-                    trend_data = dashboard["trend"].copy()
-    
-                    # Optional: filter themes if too many
-                    themes_selected = st.multiselect(
-                        "Select Themes to Display",
-                         options=trend_data["Theme"].unique(),
-                         default=trend_data["Theme"].unique()[:5]  # show top 5 by default
-                    )
-                    trend_data = trend_data[trend_data["Theme"].isin(themes_selected)]
-    
-            # Plotly scatter for bubble timeline
-            fig_bubble = px.scatter(
-                trend_data,
-                x="Date",
-                y="Theme",
-                size="count",          # bubble size = number of mentions
-                color="Theme",         # each theme has a unique color
-                hover_name="Theme",
-                hover_data={"count": True, "Date": True},
-                size_max=40,           # max bubble size
-                title="Hot Themes Over Time (Bubble Timeline)"
-            )
-    
-            fig_bubble.update_layout(
-                yaxis={'categoryorder':'total ascending'},  # orders themes by total mentions
-                xaxis_title="Date",
-                yaxis_title="Theme",
-                legend_title="Theme",
-                hovermode="closest"
-            )
-    
-        st.plotly_chart(fig_bubble, use_container_width=True)
-    
         else:
             st.warning("No trend data available for themes over time.")
 
