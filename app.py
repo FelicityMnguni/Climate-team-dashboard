@@ -101,7 +101,9 @@ if uploaded_file:
         # =============================
         st.subheader("Emerging themes")
         # Ensure 'Date' is datetime
-        # Ensure Date is datetime
+        if "count" not in filtered_df.columns:
+            filtered_df["count"] = 1  # each row counts as 1
+        
         filtered_df['Date'] = pd.to_datetime(filtered_df['Date'], errors='coerce')
 
         # Aggregate counts per Theme per Date
