@@ -66,90 +66,94 @@ if uploaded_file:
         total_regions = filtered_df["Region"].nunique()
         escalated = filtered_df["Escalation_Flag"].sum()
 
+        # Professional colors for card backgrounds
+        kpi_bg_colors = {
+            "records": "#1565C0",    # Deep blue
+            "themes": "#2E7D32",     # Deep green
+            "regions": "#FFB300",    # Amber / gold
+            "escalated": "#C62828",  # Deep red
+        }
+
+        # Optional: light gray card style for spacing and rounded corners
+        card_style = "padding:20px; border-radius:10px; text-align:center; color:white; font-size:20px; font-weight:bold;"
+
         col1, col2, col3, col4 = st.columns(4)
 
-        col1.markdown(f"<h3 style='color:#1f77b4'>Total Records<br>{total_records}</h3>", unsafe_allow_html=True)
-        col2.markdown(f"<h3 style='color:#9467bd'>Total Themes<br>{total_themes}</h3>", unsafe_allow_html=True)
-        col3.markdown(f"<h3 style='color:#17becf'>Total Regions<br>{total_regions}</h3>", unsafe_allow_html=True)
-        col4.markdown(f"<h3 style='color:#d62728'>Escalated Items<br>{escalated}</h3>", unsafe_allow_html=True)
+        col1.markdown(
+             f"<div style='background-color:{kpi_bg_colors['records']}; {card_style}'>Total Records<br>{total_records}</div>",
+             unsafe_allow_html=True
+        )
+        col2.markdown(
+            f"<div style='background-color:{kpi_bg_colors['themes']}; {card_style}'>Total Themes<br>{total_themes}</div>",
+            unsafe_allow_html=True
+        )
+        col3.markdown(
+            f"<div style='background-color:{kpi_bg_colors['regions']}; {card_style}'>Total Regions<br>{total_regions}</div>",
+            unsafe_allow_html=True
+        )
+        col4.markdown(
+            f"<div style='background-color:{kpi_bg_colors['escalated']}; {card_style}'>Escalated Items<br>{escalated}</div>",
+            unsafe_allow_html=True
+        )
 
         # =============================
         # 📈 BUBBLE TIMELINE (FILTERED)
         # =============================
-        st.subheader("Timeline with Potential Impact")
+        st.subheader("Emerging themes")
+        # Ensure 'Date' is datetime
+        trend_data['Date'] = pd.to_datetime(trend_data['Date'], errors='coerce')
 
-        if dashboard["trend"] is not None and not dashboard["trend"].empty:
-            trend_data = dashboard["trend"].copy()
+        # Ensure 'count' is numeric and has a minimum of 1
+        trend_data['count'] = pd.to_numeric(trend_data.get('count', 1), errors='coerce').fillna(1)
+        trend_data.loc[trend_data['count'] <= 0, 'count'] = 1
 
-            # Clean + enforce consistency
-            trend_data["count"] = pd.to_numeric(trend_data["count"], errors="coerce").fillna(1)
-            trend_data["Date"] = pd.to_datetime(trend_data["Date"], errors="coerce")
-            trend_data = trend_data.dropna(subset=["Date"])
-
-            # Ensure only Positive/Negative in trend_data
-            if "Potential impact" in trend_data.columns:
-                trend_data = trend_data[trend_data["Potential impact"].isin(["Positive", "Negative"])]
-
-            # Apply SAME filters to trend data
-            if theme_filter != "All":
-                trend_data = trend_data[trend_data["Theme"] == theme_filter]
-
-            if impact_filter != "All" and "Potential impact" in trend_data.columns:
-                trend_data = trend_data[trend_data["Potential impact"] == impact_filter]
-
-            if trend_data.empty:
-                st.warning("No data available for selected filters.")
-            else:
-                fig_bubble = px.scatter(
-                    trend_data,
-                    x="Date",
-                    y="Theme",
-                    size="count",
-                    color="Potential impact" if "Potential impact" in trend_data.columns else None,
-                    size_max=80,
-                    color_discrete_map={
-                        "Positive": "#2ca02c",
-                        "Negative": "#d62728"
-                    },
-                    title="Hot Themes Over Time"
-                )
-
-                fig_bubble.update_layout(
-                    yaxis={'categoryorder':'total ascending'},
-                    xaxis_title="Date",
-                    yaxis_title="",
-                    legend_title="Impact",
-                    hovermode="closest"
-                )
-
-                st.plotly_chart(fig_bubble, use_container_width=True)
+        # Check if there's data to plot
+        if trend_data.empty:
+            st.warning("No data available to display.")
         else:
-            st.warning("No trend data available.")
+            # Simple bubble chart
+            fig_bubble = px.scatter(
+                trend_data,
+                x='Date',
+                y='Theme',
+                size='count',
+                size_max=80,
+                title='Themes Over Time'
+            )
+
+            st.plotly_chart(fig_bubble, use_container_width=True)
+        
 
         # =============================
         # 🌍 MAP
         # =============================
-        st.subheader("Hot Topics by Region")
+        #st.subheader("Hot Topics by Region")
 
-        if not filtered_df.empty:
-            map_data = (
-                filtered_df.groupby(["Region", "Theme"])
-                .size()
-                .reset_index(name="count")
-            )
+        themes = filtered_df["Theme"].unique()
+        selected_themes = st.multiselect("Select Themes to Display on Map", options=themes, default=themes)
 
-            fig_map = px.scatter_geo(
-                map_data,
-                locations="Region",
-                locationmode="country names",
-                color="Theme",
-                size="count",
-                projection="natural earth"
-            )
+        # Filter data for selected themes
+        map_data = filtered_df[filtered_df["Theme"].isin(selected_themes)]
 
-            st.plotly_chart(fig_map, use_container_width=True)
+        if map_data.empty:
+           st.warning("No map data for the selected themes.")
         else:
-            st.warning("No region data available.")
+            # Example: scatter map if you have lat/lon columns
+           fig_map = px.scatter_mapbox(
+              map_data,
+              lat="Latitude",          # Replace with your latitude column
+              lon="Longitude",         # Replace with your longitude column
+              hover_name="Theme",
+              hover_data=["Region", "count"],
+              size="count",
+              size_max=25,
+              color="Theme",           # Optional: color by theme for clarity
+              zoom=5
+          )
+
+            fig_map.update_layout(mapbox_style="open-street-map", margin={"r":0,"t":0,"l":0,"b":0})
+            st.plotly_chart(fig_map, use_container_width=True)
+    
 
         # =============================
         # 🔥 HEATMAP
