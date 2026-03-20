@@ -57,7 +57,7 @@ if uploaded_file:
             filtered_df = filtered_df[filtered_df["Region"] == region_filter]
 
         # --- INTERACTIVE TREND ---
-        st.subheader("Themes Over Time - Bubble Timeline with Potential Impact")
+        st.subheader("Timeline with Potential Impact")
 
         if dashboard["trend"] is not None and not dashboard["trend"].empty:
             trend_data = dashboard["trend"].copy()
@@ -66,13 +66,25 @@ if uploaded_file:
             if "Potential impact" not in trend_data.columns:
                 trend_data["Potential impact"] = "Mixed"  # fallback default
 
-            # Filter themes if needed
-            themes_selected = st.multiselect(
-                "Select Themes to Display",
-                options=trend_data["Theme"].unique(),
-                default=trend_data["Theme"].unique()[:5]
-            )
-            trend_data = trend_data[trend_data["Theme"].isin(themes_selected)]
+            # Ensure 'count' is numeric and not zero
+            trend_data["count"] = pd.to_numeric(trend_data["count"], errors="coerce").fillna(1)
+
+            # Ensure 'Date' is datetime
+            trend_data["Date"] = pd.to_datetime(trend_data["Date"], errors="coerce")
+
+            # Filter out rows with invalid dates
+            trend_data = trend_data.dropna(subset=["Date"])
+
+            if trend_data.empty:
+                st.warning("No valid data available for the bubble timeline.")
+            else:
+                # Filter themes if needed
+                themes_selected = st.multiselect(
+                    "Select Themes to Display",
+                    options=trend_data["Theme"].unique(),
+                    default=trend_data["Theme"].unique()[:5])
+                
+                trend_data = trend_data[trend_data["Theme"].isin(themes_selected)]
 
             # Bubble timeline: size = mentions, color = potential impact
             fig_bubble = px.scatter(
