@@ -127,9 +127,8 @@ if uploaded_file:
         else:
             st.warning("No region data available for map.")
 
-        # --- HEATMAP ---
         # --- HEATMAP: Escalation by Theme and Region ---
-        st.subheader("Theme vs Region Heatmap (Escalation)")
+        st.subheader("Escalation")
 
         if not filtered_df.empty:
             # Aggregate escalation flags by Theme x Region
@@ -140,21 +139,26 @@ if uploaded_file:
                 .pivot(index="Theme", columns="Region", values="Escalation_Flag")
                 .fillna(0)  # Fill gaps with 0
             )
+            # Replace zeros with NaN to show grey
+            heat_display = heat_data.replace(0, np.nan)
 
             # Plot heatmap
             fig_heat = px.imshow(
-                heat_data,
-                text_auto=True,  # Optional: you can remove if you want cleaner visuals
-                color_continuous_scale="Reds",
+                heat_display,
+                text_auto=True,
+                color_continuous_scale="RdYlGn",
                 aspect="auto",
-                labels={"x": "Region", "y": "Theme", "color": "Escalated Items"},
-                title="Escalated Items by Theme and Region"
+                labels={"x":"Region", "y":"Theme", "color":"Escalated Items"},
+                range_color=[0, heat_data.max().max()],  # scale colors to max value
+                template="plotly_white"
             )
 
-            fig_heat.update_layout(
-                xaxis_title="Region",
-                yaxis_title="Theme",
-                yaxis=dict(autorange="reversed")  # So top theme is at top
+            fig_heat.update_traces(
+                hovertemplate="Theme: %{y}<br>Region: %{x}<br>Escalated Items: %{z}<extra></extra>",
+                zmin=0,
+                zmax=heat_data.max().max(),
+                showscale=True,
+                colorscale=[[0, "lightgrey"], [0.00001, "yellow"], [1, "red"]],  # first stop for zero = grey
             )
 
             st.plotly_chart(fig_heat, use_container_width=True)
