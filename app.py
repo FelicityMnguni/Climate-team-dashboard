@@ -103,11 +103,11 @@ if uploaded_file:
     
             st.plotly_chart(fig_bubble, use_container_width=True)
     
-        else:
-            st.warning("No trend data available for themes over time.")
-                st.subheader("Themes Over Time - Interactive Bubble Timeline")
-
-                if dashboard["trend"] is not None and not dashboard["trend"].empty:
+            else:
+                st.warning("No trend data available for themes over time.")
+                
+            st.subheader("Themes Over Time")
+            if dashboard["trend"] is not None and not dashboard["trend"].empty:
                     trend_data = dashboard["trend"].copy()
     
                     # Optional: filter themes if too many
