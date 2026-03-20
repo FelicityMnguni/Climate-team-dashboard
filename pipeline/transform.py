@@ -106,7 +106,7 @@ def build_fact(bi, dims):
     )
     
     # Drop raw text columns except 'Item' so it can be used in dashboard
-    fact = fact.drop(columns=["Topic", "Region impacted", "Horizon", "Urgency"])
+    fact = fact.drop(columns=["Topic", "Region impacted", "Horizon", "Urgency"], errors="ignore")
     return fact
 
 def transform_all(data):
