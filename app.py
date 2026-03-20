@@ -153,27 +153,26 @@ if uploaded_file:
         #st.subheader("Hot Topics by Region")
 
         themes = filtered_df["Theme"].unique()
+        regions = filtered_df["Region"].unique()
         selected_themes = st.multiselect("Select Themes to Display on Map", options=themes, default=themes)
 
-        # Filter data for selected themes
         map_data = filtered_df[filtered_df["Theme"].isin(selected_themes)]
 
         if map_data.empty:
-           st.warning("No map data for the selected themes.")
+            st.warning("No map data for the selected themes.")
         else:
-            # Example: scatter map if you have lat/lon columns
-            fig_map = px.scatter_mapbox(
-              map_data,
-              lat="Latitude",          # Replace with your latitude column
-              lon="Longitude",         # Replace with your longitude column
-              hover_name="Theme",
-              hover_data=["Region", "count"],
-              size="count",
-              size_max=25,
-              color="Theme",           # Optional: color by theme for clarity
-              zoom=5)
+    # Aggregate counts per region for selected themes
+            region_counts = map_data.groupby("Region")["count"].sum().reset_index()
 
-            fig_map.update_layout(mapbox_style="open-street-map", margin={"r":0,"t":0,"l":0,"b":0})
+            fig_map = px.bar(
+                region_counts,
+                x="Region",
+                y="count",
+                color="Region",
+                title="Theme Occurrences by Region",
+                text="count"
+            )
+
             st.plotly_chart(fig_map, use_container_width=True)
     
 
