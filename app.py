@@ -101,27 +101,48 @@ if uploaded_file:
         # =============================
         st.subheader("Emerging themes")
         # Ensure 'Date' is datetime
-        trend_data['Date'] = pd.to_datetime(trend_data['Date'], errors='coerce')
+        # Ensure Date is datetime
+        filtered_df['Date'] = pd.to_datetime(filtered_df['Date'], errors='coerce')
 
-        # Ensure 'count' is numeric and has a minimum of 1
-        trend_data['count'] = pd.to_numeric(trend_data.get('count', 1), errors='coerce').fillna(1)
-        trend_data.loc[trend_data['count'] <= 0, 'count'] = 1
+        # Aggregate counts per Theme per Date
+        theme_trends = (
+            filtered_df.groupby(['Date', 'Theme'])['count']
+            .sum()
+            .reset_index()
+        )
 
-        # Check if there's data to plot
-        if trend_data.empty:
-            st.warning("No data available to display.")
+        if theme_trends.empty:
+            st.warning("No data available to display trends.")
         else:
-            # Simple bubble chart
-            fig_bubble = px.scatter(
-                trend_data,
+            # Identify emerging themes: calculate last 7-day growth
+            recent_counts = (
+                theme_trends[theme_trends['Date'] >= (theme_trends['Date'].max() - pd.Timedelta(days=7))]
+                .groupby('Theme')['count']
+                .sum()
+                .reset_index()
+            )
+            # Top 5 emerging themes by growth
+            top_emerging = recent_counts.sort_values('count', ascending=False).head(5)['Theme'].tolist()
+
+            # Plot line chart
+            fig_trend = px.line(
+                theme_trends,
                 x='Date',
-                y='Theme',
-                size='count',
-                size_max=80,
-                title='Themes Over Time'
+                y='count',
+                color='Theme',
+                line_group='Theme',
+                title='Theme Trends Over Time',
+                hover_data={'Theme':True, 'count':True}
             )
 
-            st.plotly_chart(fig_bubble, use_container_width=True)
+            # Highlight emerging themes by increasing line width
+            for trace in fig_trend.data:
+                if trace.name in top_emerging:
+                    trace.update(line=dict(width=4))  # thicker line for emerging
+                else:
+                    trace.update(line=dict(width=1, dash='dot', color='lightgray'))  # de-emphasize others
+
+            st.plotly_chart(fig_trend, use_container_width=True)
         
 
         # =============================
