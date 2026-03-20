@@ -139,7 +139,7 @@ if uploaded_file:
            st.warning("No map data for the selected themes.")
         else:
             # Example: scatter map if you have lat/lon columns
-           fig_map = px.scatter_mapbox(
+            fig_map = px.scatter_mapbox(
               map_data,
               lat="Latitude",          # Replace with your latitude column
               lon="Longitude",         # Replace with your longitude column
@@ -148,8 +148,7 @@ if uploaded_file:
               size="count",
               size_max=25,
               color="Theme",           # Optional: color by theme for clarity
-              zoom=5
-          )
+              zoom=5)
 
             fig_map.update_layout(mapbox_style="open-street-map", margin={"r":0,"t":0,"l":0,"b":0})
             st.plotly_chart(fig_map, use_container_width=True)
