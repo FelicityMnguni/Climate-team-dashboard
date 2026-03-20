@@ -1,7 +1,7 @@
 import streamlit as st 
 import pandas as pd
 import plotly.express as px
-
+import numpy as np 
 from pipeline.run_pipeline import run_pipeline
 
 # --- PAGE CONFIG ---
