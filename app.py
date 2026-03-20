@@ -95,7 +95,7 @@ if uploaded_file:
                 color="Potential impact",
                 hover_name="Theme",
                 hover_data={"count": True, "Date": True, "Potential impact": True},
-                size_max=40,
+                size_max=80,
                 color_discrete_map={
                     "Positive": "#2ca02c",  # green
                     "Negative": "#d62728",  # red
