@@ -116,7 +116,7 @@ if uploaded_file:
     # -----------------------------
     # EXECUTIVE RISK FLOW
     # -----------------------------
-    st.subheader("Executive Risk Flow (Source → Theme → Impact → Urgency)")
+    st.subheader("Risk Flow (Source → Theme → Impact → Urgency)")
 
     risk_df = filtered_df[filtered_df["Category"] == "Risk"].dropna(subset=["Source_Type","Theme / Topic","Potential impact","Urgency"])
 
@@ -146,7 +146,7 @@ if uploaded_file:
     # -----------------------------
     # HEATMAP
     # -----------------------------
-    st.subheader("Risk Intensity Over Time (Theme vs Week)")
+    st.subheader("Risk Intensity Over Time")
 
     if not risk_df.empty:
         heat_df = risk_df.copy()
