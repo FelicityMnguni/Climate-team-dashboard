@@ -18,7 +18,7 @@ if uploaded_file:
 
     # Ensure expected columns exist
     expected_cols = ["Date","Category","IMS","Theme / Topic","Region impacted",
-                     "Urgency","Urgency_W","SDGs","Headline","Potential impact","Internal_Link"]
+                     "Urgency","Urgency_W","SDGs","Headline","Potential impact"]
     for col in expected_cols:
         if col not in df.columns:
             df[col] = np.nan
@@ -73,7 +73,7 @@ if uploaded_file:
             """, unsafe_allow_html=True
         )
         with col.expander(f"View {card['label']}"):
-            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
+            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
             existing_cols = [c for c in display_cols if c in card["filter"].columns]
             st.dataframe(card["filter"][existing_cols].sort_values("Date",ascending=False), use_container_width=True)
 
@@ -90,7 +90,7 @@ if uploaded_file:
             """, unsafe_allow_html=True
         )
         with col.expander(f"View {card['label']}"):
-            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
+            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
             existing_cols = [c for c in display_cols if c in card["filter"].columns]
             st.dataframe(card["filter"][existing_cols].sort_values("Date",ascending=False), use_container_width=True)
 
@@ -175,7 +175,7 @@ if uploaded_file:
         st.info("No valid data for urgency breakdown.")
 
     # -----------------------------
-    # SANKY DIAGRAM: Category → Theme → Region → Urgency with hover tooltips
+    # SANKY DIAGRAM: Category → Theme → Region → Urgency (with hover)
     # -----------------------------
     st.subheader("Risk Links Flow (Sankey)")
     sankey_df = filtered_df.dropna(subset=["Category","Theme / Topic","Region impacted","Urgency"])
@@ -206,21 +206,12 @@ if uploaded_file:
         st.info("No valid data for Sankey diagram.")
 
     # -----------------------------
-    # INTELLIGENCE LOG without Headline
+    # INTELLIGENCE LOG
     # -----------------------------
     st.subheader("Intelligence Log")
-    log_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
+    log_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
     existing_cols = [c for c in log_cols if c in filtered_df.columns]
-
-    # Make clickable links
-    if "Internal_Link" in existing_cols:
-        filtered_df['Internal_Link_Display'] = filtered_df['Internal_Link'].apply(
-            lambda x: f"[View Link]({x})" if pd.notna(x) else ""
-        )
-        display_cols = [c if c!="Internal_Link" else "Internal_Link_Display" for c in existing_cols]
-        st.dataframe(filtered_df[display_cols].sort_values("Date",ascending=False), use_container_width=True)
-    else:
-        st.dataframe(filtered_df[existing_cols].sort_values("Date",ascending=False), use_container_width=True)
+    st.dataframe(filtered_df[existing_cols].sort_values("Date",ascending=False), use_container_width=True)
 
 else:
     st.info("Upload your generated fact_table.csv to begin")
