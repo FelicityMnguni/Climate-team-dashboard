@@ -31,7 +31,6 @@ if uploaded_file:
     opp_pct = round((df.get('Category', '') == "Opportunity").mean() * 100, 1)
     trends_pct = round((df.get('Category', '') == "Trend").mean() * 100, 1)
 
-    # Define all KPI tiles separately
     kpi_data = [
         {"label": "Reports Logged", "value": total_reports, "color": "#457b9d"},
         {"label": "High Urgency Alerts", "value": high_urgency, "color": "#e63946"},
@@ -40,7 +39,6 @@ if uploaded_file:
         {"label": "Trends", "value": f"{trends_pct}%", "color": "#90be6d"}
     ]
 
-    # Layout KPIs in columns (5 total)
     kpi_cols = st.columns(len(kpi_data))
     for col, kpi in zip(kpi_cols, kpi_data):
         col.markdown(
@@ -69,36 +67,46 @@ if uploaded_file:
         st.markdown("<div style='padding:10px;'>No SDGs reported</div>", unsafe_allow_html=True)
 
     # -----------------------------
-    # TRENDS OVER TIME (WEEKLY)
+    # TRENDS OVER TIME (WEEKLY) - FIXED
     # -----------------------------
     st.subheader("Trends Over Time (Weekly)")
-    if not df.empty and "Category" in df.columns:
-        trends_df = df.groupby([df['Date'].dt.to_period('W'), 'Category']).size().reset_index(name='Count')
-        trends_df['Date'] = trends_df['Date'].dt.start_time
-        fig_trends = px.line(trends_df, x='Date', y='Count', color='Category', markers=True)
-        st.plotly_chart(fig_trends, use_container_width=True)
+    if "Date" in df.columns and "Category" in df.columns and not df.empty:
+        df_valid = df.dropna(subset=["Date","Category"])
+        if not df_valid.empty:
+            trends_df = df_valid.groupby([df_valid['Date'].dt.to_period('W'), 'Category']).size().reset_index(name='Count')
+            trends_df['Date'] = trends_df['Date'].dt.start_time
+            fig_trends = px.line(trends_df, x='Date', y='Count', color='Category', markers=True,
+                                 labels={"Count":"Number of Reports", "Date":"Week"})
+            st.plotly_chart(fig_trends, use_container_width=True)
+        else:
+            st.info("No valid data for trends over time.")
+    else:
+        st.info("Date or Category column missing for trends.")
 
     # -----------------------------
     # GEOGRAPHIC IMPACT
     # -----------------------------
     st.subheader("Geographic Impact")
-    if "Region impacted" in df.columns and "IMS" in df.columns:
+    if "Region impacted" in df.columns and "IMS" in df.columns and not df.empty:
         map_df = df.groupby("Region impacted")["IMS"].mean().reset_index()
-        fig_map = px.choropleth(
-            map_df,
-            locations="Region impacted",
-            locationmode="country names",
-            color="IMS",
-            color_continuous_scale="Greens",
-            title="Average Risk Materiality by Region"
-        )
-        st.plotly_chart(fig_map, use_container_width=True)
+        if not map_df.empty:
+            fig_map = px.choropleth(
+                map_df,
+                locations="Region impacted",
+                locationmode="country names",
+                color="IMS",
+                color_continuous_scale="Greens",
+                title="Average Risk Materiality by Region"
+            )
+            st.plotly_chart(fig_map, use_container_width=True)
+        else:
+            st.info("No data to display on map.")
 
     # -----------------------------
     # KEY THEMES
     # -----------------------------
     st.subheader("Key Themes")
-    if "Theme / Topic" in df.columns and "IMS" in df.columns:
+    if "Theme / Topic" in df.columns and "IMS" in df.columns and not df.empty:
         top_themes = df.groupby("Theme / Topic")["IMS"].mean().sort_values(ascending=False).head(6)
         theme_colors = ["#e63946","#2a9d8f","#f4a261","#457b9d","#f1faee","#a8dadc"]
         theme_html = ""
@@ -108,13 +116,23 @@ if uploaded_file:
         st.markdown(theme_html, unsafe_allow_html=True)
 
     # -----------------------------
-    # URGENCY BREAKDOWN
+    # URGENCY BREAKDOWN - FIXED
     # -----------------------------
     st.subheader("Urgency Breakdown")
-    if "Urgency" in df.columns and "Category" in df.columns:
-        urgency_df = df.groupby(['Urgency','Category']).size().unstack(fill_value=0)
-        fig_urgency = px.bar(urgency_df, barmode='stack', title="Urgency by Category")
-        st.plotly_chart(fig_urgency, use_container_width=True)
+    if "Urgency" in df.columns and "Category" in df.columns and not df.empty:
+        df_valid = df.dropna(subset=["Urgency","Category"])
+        if not df_valid.empty:
+            urgency_df = df_valid.groupby(['Urgency','Category']).size().unstack(fill_value=0)
+            if not urgency_df.empty:
+                fig_urgency = px.bar(urgency_df, barmode='stack', title="Urgency by Category",
+                                     labels={"value":"Number of Reports", "Urgency":"Urgency Level"})
+                st.plotly_chart(fig_urgency, use_container_width=True)
+            else:
+                st.info("No data for urgency breakdown.")
+        else:
+            st.info("No valid data for urgency breakdown.")
+    else:
+        st.info("Urgency or Category column missing for urgency breakdown.")
 
     # -----------------------------
     # INTELLIGENCE LOG
