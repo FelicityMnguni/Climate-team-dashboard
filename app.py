@@ -4,7 +4,7 @@ import plotly.express as px
 import numpy as np
 
 # --- CONFIG ---
-st.set_page_config(page_title="Climate BI, layout="wide")
+st.set_page_config(page_title="Climate BI", layout="wide")
 
 st.title("Climate BI")
 st.markdown("Climate BI prototype| by SASOL Climate Team, 2026")
