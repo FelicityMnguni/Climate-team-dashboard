@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -73,7 +73,7 @@ if uploaded_file:
             """, unsafe_allow_html=True
         )
         with col.expander(f"View {card['label']}"):
-            display_cols = ["Date","Headline","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
+            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
             existing_cols = [c for c in display_cols if c in card["filter"].columns]
             st.dataframe(card["filter"][existing_cols].sort_values("Date",ascending=False), use_container_width=True)
 
@@ -90,7 +90,7 @@ if uploaded_file:
             """, unsafe_allow_html=True
         )
         with col.expander(f"View {card['label']}"):
-            display_cols = ["Date","Headline","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
+            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
             existing_cols = [c for c in display_cols if c in card["filter"].columns]
             st.dataframe(card["filter"][existing_cols].sort_values("Date",ascending=False), use_container_width=True)
 
@@ -175,7 +175,7 @@ if uploaded_file:
         st.info("No valid data for urgency breakdown.")
 
     # -----------------------------
-    # SANKY DIAGRAM: Category → Theme → Region → Urgency
+    # SANKY DIAGRAM: Category → Theme → Region → Urgency with hover tooltips
     # -----------------------------
     st.subheader("Risk Links Flow (Sankey)")
     sankey_df = filtered_df.dropna(subset=["Category","Theme / Topic","Region impacted","Urgency"])
@@ -187,6 +187,7 @@ if uploaded_file:
         source = []
         target = []
         value = []
+        hover_text = []
 
         for col1,col2 in [("Category","Theme / Topic"),("Theme / Topic","Region impacted"),("Region impacted","Urgency")]:
             grp = sankey_df.groupby([col1,col2]).size().reset_index(name='Count')
@@ -194,20 +195,21 @@ if uploaded_file:
                 source.append(node_indices[row[col1]])
                 target.append(node_indices[row[col2]])
                 value.append(row['Count'])
+                hover_text.append(f"{row[col1]} → {row[col2]}: {row['Count']} reports")
 
         fig_sankey = go.Figure(go.Sankey(
             node=dict(label=all_nodes, pad=15, thickness=20, color="lightblue"),
-            link=dict(source=source, target=target, value=value)
+            link=dict(source=source, target=target, value=value, hovertemplate=hover_text)
         ))
         st.plotly_chart(fig_sankey, use_container_width=True)
     else:
         st.info("No valid data for Sankey diagram.")
 
     # -----------------------------
-    # INTELLIGENCE LOG with clickable links
+    # INTELLIGENCE LOG without Headline
     # -----------------------------
     st.subheader("Intelligence Log")
-    log_cols = ["Date","Headline","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
+    log_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact","Internal_Link"]
     existing_cols = [c for c in log_cols if c in filtered_df.columns]
 
     # Make clickable links
@@ -216,7 +218,7 @@ if uploaded_file:
             lambda x: f"[View Link]({x})" if pd.notna(x) else ""
         )
         display_cols = [c if c!="Internal_Link" else "Internal_Link_Display" for c in existing_cols]
-        st.markdown(filtered_df[display_cols].to_markdown(index=False), unsafe_allow_html=True)
+        st.dataframe(filtered_df[display_cols].sort_values("Date",ascending=False), use_container_width=True)
     else:
         st.dataframe(filtered_df[existing_cols].sort_values("Date",ascending=False), use_container_width=True)
 
