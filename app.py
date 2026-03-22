@@ -18,7 +18,7 @@ if uploaded_file:
 
     # Ensure expected columns exist
     expected_cols = ["Date","Category","IMS","Theme / Topic","Region impacted",
-                     "Urgency","Urgency_W","SDGs","Headline","Potential impact"]
+                     "Urgency","Urgency_W","SDGs","Potential impact","Acceleration","Source"]
     for col in expected_cols:
         if col not in df.columns:
             df[col] = np.nan
@@ -26,13 +26,35 @@ if uploaded_file:
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df["Urgency"] = df["Urgency"].fillna("Unknown")
     df["Category"] = df["Category"].fillna("Other")
+    df["Acceleration"] = pd.to_numeric(df["Acceleration"], errors="coerce").fillna(1)
+    df["IMS"] = pd.to_numeric(df["IMS"], errors="coerce").fillna(0)
+
+    # -----------------------------
+    # DERIVED FIELDS
+    # -----------------------------
+    df["Weighted_Risk"] = df["IMS"] * df["Acceleration"]
+
+    def classify_source(s):
+        if pd.isna(s):
+            return "External"
+        s = str(s).lower()
+        if "internal" in s:
+            return "Internal"
+        elif "short" in s:
+            return "WEF Short Term"
+        elif "long" in s:
+            return "WEF Long Term"
+        else:
+            return "External"
+
+    df["Source_Type"] = df["Source"].apply(classify_source)
 
     # -----------------------------
     # FILTERS
     # -----------------------------
     st.sidebar.subheader("Filters")
-    selected_category = st.sidebar.multiselect("Category", df["Category"].dropna().unique(), default=df["Category"].dropna().unique())
-    selected_urgency = st.sidebar.multiselect("Urgency", df["Urgency"].dropna().unique(), default=df["Urgency"].dropna().unique())
+    selected_category = st.sidebar.multiselect("Category", df["Category"].unique(), default=df["Category"].unique())
+    selected_urgency = st.sidebar.multiselect("Urgency", df["Urgency"].unique(), default=df["Urgency"].unique())
     selected_impact = st.sidebar.multiselect("Potential Impact", df["Potential impact"].dropna().unique(), default=df["Potential impact"].dropna().unique())
 
     filtered_df = df[
@@ -53,61 +75,20 @@ if uploaded_file:
     trend_count = category_counts.get("Trend",0)
 
     card_data = [
-        {"label":"Reports Logged","value":total_reports,"color":"#457b9d","filter":filtered_df},
-        {"label":"High Urgency Alerts","value":high_urgency,"color":"#e63946","filter":filtered_df[filtered_df["Urgency_W"]>=0.8]},
-        {"label":"Risks","value":risks_count,"color":"#f94144","filter":filtered_df[filtered_df["Category"]=="Risk"]},
-        {"label":"Opportunities","value":opp_count,"color":"#f3722c","filter":filtered_df[filtered_df["Category"]=="Opportunity"]},
-        {"label":"Trends","value":trend_count,"color":"#90be6d","filter":filtered_df[filtered_df["Category"]=="Trend"]}
+        {"label":"Reports Logged","value":total_reports,"color":"#457b9d"},
+        {"label":"High Urgency Alerts","value":high_urgency,"color":"#e63946"},
+        {"label":"Risks","value":risks_count,"color":"#f94144"},
+        {"label":"Opportunities","value":opp_count,"color":"#f3722c"},
+        {"label":"Trends","value":trend_count,"color":"#90be6d"}
     ]
 
-    # First row: Reports Logged & High Urgency
-    row1_cols = st.columns([2,2])
-    for col, card in zip(row1_cols, card_data[:2]):
-        col.markdown(
-            f"""
-            <div style='background-color:{card['color']}; color:white; padding:30px; 
-                        text-align:center; border-radius:12px; box-shadow: 3px 3px 8px rgba(0,0,0,0.2);'>
-                <h3 style='margin:0; font-size:22px'>{card['label']}</h3>
-                <h1 style='margin:0; font-size:36px'>{card['value']}</h1>
-            </div>
-            """, unsafe_allow_html=True
-        )
-        with col.expander(f"View {card['label']}"):
-            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
-            existing_cols = [c for c in display_cols if c in card["filter"].columns]
-            st.dataframe(card["filter"][existing_cols].sort_values("Date",ascending=False), use_container_width=True)
+    row1 = st.columns(2)
+    for col, card in zip(row1, card_data[:2]):
+        col.markdown(f"<div style='background:{card['color']};padding:30px;border-radius:12px;color:white;text-align:center'><h3>{card['label']}</h3><h1>{card['value']}</h1></div>", unsafe_allow_html=True)
 
-    # Second row: Risks, Opportunities, Trends
-    row2_cols = st.columns([1,1,1])
-    for col, card in zip(row2_cols, card_data[2:]):
-        col.markdown(
-            f"""
-            <div style='background-color:{card['color']}; color:white; padding:25px; 
-                        text-align:center; border-radius:12px; box-shadow: 3px 3px 8px rgba(0,0,0,0.2);'>
-                <h3 style='margin:0; font-size:20px'>{card['label']}</h3>
-                <h2 style='margin:0; font-size:28px'>{card['value']}</h2>
-            </div>
-            """, unsafe_allow_html=True
-        )
-        with col.expander(f"View {card['label']}"):
-            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
-            existing_cols = [c for c in display_cols if c in card["filter"].columns]
-            st.dataframe(card["filter"][existing_cols].sort_values("Date",ascending=False), use_container_width=True)
-
-    # -----------------------------
-    # DYNAMIC SDG TILES
-    # -----------------------------
-    st.subheader("SDGs")
-    if "SDGs" in filtered_df.columns and filtered_df["SDGs"].notna().any():
-        unique_sdgs = pd.Series(filtered_df["SDGs"].dropna().astype(str).str.split(",").sum()).unique()
-        sdg_colors = px.colors.qualitative.Pastel
-        sdg_html = ""
-        for i, sdg in enumerate(unique_sdgs):
-            color = sdg_colors[i % len(sdg_colors)]
-            sdg_html += f"<div style='background-color:{color}; color:black; padding:10px; margin:2px; display:inline-block; border-radius:5px;'>SDG {sdg.strip()}</div>"
-        st.markdown(sdg_html, unsafe_allow_html=True)
-    else:
-        st.markdown("<div style='padding:10px;'>No SDGs reported</div>", unsafe_allow_html=True)
+    row2 = st.columns(3)
+    for col, card in zip(row2, card_data[2:]):
+        col.markdown(f"<div style='background:{card['color']};padding:20px;border-radius:12px;color:white;text-align:center'><h4>{card['label']}</h4><h2>{card['value']}</h2></div>", unsafe_allow_html=True)
 
     # -----------------------------
     # WEEKLY TRENDS
@@ -117,46 +98,91 @@ if uploaded_file:
     if not df_valid.empty:
         trends_df = df_valid.groupby([df_valid['Date'].dt.to_period('W'), 'Category']).size().reset_index(name='Count')
         trends_df['Date'] = trends_df['Date'].dt.start_time
-        fig_trends = px.line(trends_df, x='Date', y='Count', color='Category', markers=True,
-                             labels={"Count":"Number of Reports","Date":"Week"})
+        fig_trends = px.line(trends_df, x='Date', y='Count', color='Category', markers=True)
         st.plotly_chart(fig_trends, use_container_width=True)
-    else:
-        st.info("No valid data for trends over time.")
 
     # -----------------------------
-    # GEOGRAPHIC IMPACT
+    # EXECUTIVE RISK-INTEL FLOW (NEW)
     # -----------------------------
-    st.subheader("Geographic Impact")
-    def to_iso3(name):
-        try:
-            return pycountry.countries.lookup(name).alpha_3
-        except:
-            return None
-    filtered_df['Region_ISO'] = filtered_df['Region impacted'].apply(to_iso3)
-    map_df = filtered_df.dropna(subset=['Region_ISO']).groupby('Region_ISO')['IMS'].mean().reset_index()
-    if not map_df.empty:
-        fig_map = px.choropleth(map_df,
-                                locations="Region_ISO",
-                                locationmode="ISO-3",
-                                color="IMS",
-                                color_continuous_scale="Greens",
-                                title="Average Risk Materiality by Region")
-        st.plotly_chart(fig_map, use_container_width=True)
-    else:
-        st.info("No valid data for geographic impact.")
+    st.subheader("Executive Risk Flow (Source → Theme → Impact → Urgency)")
+
+    risk_df = filtered_df[filtered_df["Category"] == "Risk"].dropna(subset=["Source_Type","Theme / Topic","Potential impact","Urgency"])
+
+    if not risk_df.empty:
+        nodes = list(pd.concat([risk_df["Source_Type"], risk_df["Theme / Topic"],
+                                risk_df["Potential impact"], risk_df["Urgency"]]).unique())
+        idx = {n:i for i,n in enumerate(nodes)}
+
+        source, target, value = [], [], []
+        hover = []
+
+        for c1,c2 in [("Source_Type","Theme / Topic"),
+                      ("Theme / Topic","Potential impact"),
+                      ("Potential impact","Urgency")]:
+            grp = risk_df.groupby([c1,c2])["Weighted_Risk"].sum().reset_index()
+            for _, r in grp.iterrows():
+                source.append(idx[r[c1]])
+                target.append(idx[r[c2]])
+                value.append(r["Weighted_Risk"])
+                hover.append(f"{r[c1]} → {r[c2]}<br>Weighted Risk: {round(r['Weighted_Risk'],2)}")
+
+        fig_exec = go.Figure(go.Sankey(
+            node=dict(label=nodes, pad=15, thickness=20),
+            link=dict(source=source, target=target, value=value, hovertemplate=hover)
+        ))
+        st.plotly_chart(fig_exec, use_container_width=True)
 
     # -----------------------------
-    # KEY THEMES
+    # STRATEGIC HEATMAP (NEW)
     # -----------------------------
-    st.subheader("Key Themes")
-    if "Theme / Topic" in filtered_df.columns and "IMS" in filtered_df.columns and not filtered_df.empty:
-        top_themes = filtered_df.groupby("Theme / Topic")["IMS"].mean().sort_values(ascending=False).head(6)
-        theme_colors = ["#e63946","#2a9d8f","#f4a261","#457b9d","#f1faee","#a8dadc"]
-        theme_html = ""
-        for i, theme in enumerate(top_themes.index):
-            color = theme_colors[i % len(theme_colors)]
-            theme_html += f"<div style='background-color:{color}; color:white; padding:10px; margin:2px; display:inline-block; border-radius:5px;'>{theme}</div>"
-        st.markdown(theme_html, unsafe_allow_html=True)
+    st.subheader("Risk Intensity Over Time (Theme vs Week)")
+
+    heat_df = risk_df.copy()
+    if not heat_df.empty:
+        heat_df["Week"] = heat_df["Date"].dt.to_period("W").astype(str)
+        pivot = heat_df.pivot_table(index="Theme / Topic", columns="Week",
+                                   values="Weighted_Risk", aggfunc="mean", fill_value=0)
+
+        fig_heat = px.imshow(pivot, aspect="auto")
+        st.plotly_chart(fig_heat, use_container_width=True)
+
+    # -----------------------------
+    # TOP ESCALATING RISKS (NEW)
+    # -----------------------------
+    st.subheader("Top Escalating Risks")
+
+    if not risk_df.empty:
+        top_risks = risk_df.sort_values("Weighted_Risk", ascending=False).head(10)
+        st.dataframe(top_risks[["Theme / Topic","Source_Type","Potential impact","Urgency","IMS","Acceleration","Weighted_Risk"]])
+
+    # -----------------------------
+    # OLD SANKEY (UNCHANGED)
+    # -----------------------------
+    st.subheader("General Intelligence Flow")
+
+    sankey_df = filtered_df.dropna(subset=["Category","Theme / Topic","Region impacted","Urgency"])
+    if not sankey_df.empty:
+        nodes = list(pd.concat([sankey_df["Category"], sankey_df["Theme / Topic"],
+                                sankey_df["Region impacted"], sankey_df["Urgency"]]).unique())
+        idx = {n:i for i,n in enumerate(nodes)}
+
+        source, target, value, hover = [], [], [], []
+
+        for c1,c2 in [("Category","Theme / Topic"),
+                      ("Theme / Topic","Region impacted"),
+                      ("Region impacted","Urgency")]:
+            grp = sankey_df.groupby([c1,c2]).size().reset_index(name='Count')
+            for _, r in grp.iterrows():
+                source.append(idx[r[c1]])
+                target.append(idx[r[c2]])
+                value.append(r["Count"])
+                hover.append(f"{r[c1]} → {r[c2]}: {r['Count']}")
+
+        fig_old = go.Figure(go.Sankey(
+            node=dict(label=nodes),
+            link=dict(source=source, target=target, value=value, hovertemplate=hover)
+        ))
+        st.plotly_chart(fig_old, use_container_width=True)
 
     # -----------------------------
     # URGENCY BREAKDOWN
@@ -165,53 +191,15 @@ if uploaded_file:
     df_valid = filtered_df.dropna(subset=["Urgency","Category"])
     if not df_valid.empty:
         urgency_df = df_valid.groupby(["Urgency","Category"]).size().unstack(fill_value=0)
-        if not urgency_df.empty:
-            fig_urgency = px.bar(urgency_df, barmode='stack', title="Urgency by Category",
-                                 labels={"value":"Number of Reports","Urgency":"Urgency Level"})
-            st.plotly_chart(fig_urgency, use_container_width=True)
-        else:
-            st.info("No data for urgency breakdown.")
-    else:
-        st.info("No valid data for urgency breakdown.")
-
-    # -----------------------------
-    # SANKY DIAGRAM: Category → Theme → Region → Urgency (with hover)
-    # -----------------------------
-    st.subheader("Risk Links Flow (Sankey)")
-    sankey_df = filtered_df.dropna(subset=["Category","Theme / Topic","Region impacted","Urgency"])
-    if not sankey_df.empty:
-        all_nodes = list(pd.concat([sankey_df["Category"], sankey_df["Theme / Topic"],
-                                    sankey_df["Region impacted"], sankey_df["Urgency"]]).unique())
-        node_indices = {name:i for i,name in enumerate(all_nodes)}
-
-        source = []
-        target = []
-        value = []
-        hover_text = []
-
-        for col1,col2 in [("Category","Theme / Topic"),("Theme / Topic","Region impacted"),("Region impacted","Urgency")]:
-            grp = sankey_df.groupby([col1,col2]).size().reset_index(name='Count')
-            for _, row in grp.iterrows():
-                source.append(node_indices[row[col1]])
-                target.append(node_indices[row[col2]])
-                value.append(row['Count'])
-                hover_text.append(f"{row[col1]} → {row[col2]}: {row['Count']} reports")
-
-        fig_sankey = go.Figure(go.Sankey(
-            node=dict(label=all_nodes, pad=15, thickness=20, color="lightblue"),
-            link=dict(source=source, target=target, value=value, hovertemplate=hover_text)
-        ))
-        st.plotly_chart(fig_sankey, use_container_width=True)
-    else:
-        st.info("No valid data for Sankey diagram.")
+        fig_urgency = px.bar(urgency_df, barmode='stack')
+        st.plotly_chart(fig_urgency, use_container_width=True)
 
     # -----------------------------
     # INTELLIGENCE LOG
     # -----------------------------
     st.subheader("Intelligence Log")
     log_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
-    existing_cols = [c for c in log_cols if c in filtered_df.columns]
-    st.dataframe(filtered_df[existing_cols].sort_values("Date",ascending=False), use_container_width=True)
+    st.dataframe(filtered_df[log_cols].sort_values("Date",ascending=False), use_container_width=True)
 
 else:
     st.info("Upload your generated fact_table.csv to begin")
