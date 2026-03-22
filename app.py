@@ -23,7 +23,7 @@ if uploaded_file:
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
     # -----------------------------
-    # TOP KPI CARDS (Styled)
+    # TOP KPI CARDS (Styled, Separate Risk/Opportunity/Trend)
     # -----------------------------
     total_reports = len(df)
     high_urgency = df[df.get("Urgency_W", 0) >= 0.8].shape[0]
@@ -31,12 +31,16 @@ if uploaded_file:
     opp_pct = round((df.get('Category', '') == "Opportunity").mean() * 100, 1)
     trends_pct = round((df.get('Category', '') == "Trend").mean() * 100, 1)
 
+    # Define all KPI tiles separately
     kpi_data = [
         {"label": "Reports Logged", "value": total_reports, "color": "#457b9d"},
         {"label": "High Urgency Alerts", "value": high_urgency, "color": "#e63946"},
-        {"label": "Risks | Opportunities | Trends", "value": f"{risks_pct}% | {opp_pct}% | {trends_pct}%", "color": "#2a9d8f"}
+        {"label": "Risks", "value": f"{risks_pct}%", "color": "#f94144"},
+        {"label": "Opportunities", "value": f"{opp_pct}%", "color": "#f3722c"},
+        {"label": "Trends", "value": f"{trends_pct}%", "color": "#90be6d"}
     ]
 
+    # Layout KPIs in columns (5 total)
     kpi_cols = st.columns(len(kpi_data))
     for col, kpi in zip(kpi_cols, kpi_data):
         col.markdown(
