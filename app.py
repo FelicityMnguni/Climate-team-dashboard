@@ -64,7 +64,7 @@ if uploaded_file:
     ]
 
     # -----------------------------
-    # KPI CARDS
+    # KPI CARDS (WITH EXPANDERS)
     # -----------------------------
     total_reports = len(filtered_df)
     high_urgency = filtered_df[filtered_df.get("Urgency_W",0) >= 0.8].shape[0]
@@ -75,20 +75,32 @@ if uploaded_file:
     trend_count = category_counts.get("Trend",0)
 
     card_data = [
-        {"label":"Reports Logged","value":total_reports,"color":"#457b9d"},
-        {"label":"High Urgency Alerts","value":high_urgency,"color":"#e63946"},
-        {"label":"Risks","value":risks_count,"color":"#f94144"},
-        {"label":"Opportunities","value":opp_count,"color":"#f3722c"},
-        {"label":"Trends","value":trend_count,"color":"#90be6d"}
+        {"label":"Reports Logged","value":total_reports,"color":"#457b9d","df":filtered_df},
+        {"label":"High Urgency Alerts","value":high_urgency,"color":"#e63946","df":filtered_df[filtered_df["Urgency_W"]>=0.8]},
+        {"label":"Risks","value":risks_count,"color":"#f94144","df":filtered_df[filtered_df["Category"]=="Risk"]},
+        {"label":"Opportunities","value":opp_count,"color":"#f3722c","df":filtered_df[filtered_df["Category"]=="Opportunity"]},
+        {"label":"Trends","value":trend_count,"color":"#90be6d","df":filtered_df[filtered_df["Category"]=="Trend"]}
     ]
 
+    # Row 1
     row1 = st.columns(2)
     for col, card in zip(row1, card_data[:2]):
         col.markdown(f"<div style='background:{card['color']};padding:30px;border-radius:12px;color:white;text-align:center'><h3>{card['label']}</h3><h1>{card['value']}</h1></div>", unsafe_allow_html=True)
 
+        with col.expander(f"View {card['label']} details"):
+            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
+            existing = [c for c in display_cols if c in card["df"].columns]
+            st.dataframe(card["df"][existing].sort_values("Date",ascending=False), use_container_width=True)
+
+    # Row 2
     row2 = st.columns(3)
     for col, card in zip(row2, card_data[2:]):
         col.markdown(f"<div style='background:{card['color']};padding:20px;border-radius:12px;color:white;text-align:center'><h4>{card['label']}</h4><h2>{card['value']}</h2></div>", unsafe_allow_html=True)
+
+        with col.expander(f"View {card['label']} details"):
+            display_cols = ["Date","Category","Theme / Topic","SDGs","Urgency","Potential impact"]
+            existing = [c for c in display_cols if c in card["df"].columns]
+            st.dataframe(card["df"][existing].sort_values("Date",ascending=False), use_container_width=True)
 
     # -----------------------------
     # WEEKLY TRENDS
@@ -102,7 +114,7 @@ if uploaded_file:
         st.plotly_chart(fig_trends, use_container_width=True)
 
     # -----------------------------
-    # EXECUTIVE RISK-INTEL FLOW (NEW)
+    # EXECUTIVE RISK FLOW
     # -----------------------------
     st.subheader("Executive Risk Flow (Source → Theme → Impact → Urgency)")
 
@@ -113,8 +125,7 @@ if uploaded_file:
                                 risk_df["Potential impact"], risk_df["Urgency"]]).unique())
         idx = {n:i for i,n in enumerate(nodes)}
 
-        source, target, value = [], [], []
-        hover = []
+        source, target, value, hover = [], [], [], []
 
         for c1,c2 in [("Source_Type","Theme / Topic"),
                       ("Theme / Topic","Potential impact"),
@@ -133,13 +144,14 @@ if uploaded_file:
         st.plotly_chart(fig_exec, use_container_width=True)
 
     # -----------------------------
-    # STRATEGIC HEATMAP (NEW)
+    # HEATMAP
     # -----------------------------
     st.subheader("Risk Intensity Over Time (Theme vs Week)")
 
-    heat_df = risk_df.copy()
-    if not heat_df.empty:
+    if not risk_df.empty:
+        heat_df = risk_df.copy()
         heat_df["Week"] = heat_df["Date"].dt.to_period("W").astype(str)
+
         pivot = heat_df.pivot_table(index="Theme / Topic", columns="Week",
                                    values="Weighted_Risk", aggfunc="mean", fill_value=0)
 
@@ -147,7 +159,7 @@ if uploaded_file:
         st.plotly_chart(fig_heat, use_container_width=True)
 
     # -----------------------------
-    # TOP ESCALATING RISKS (NEW)
+    # TOP RISKS
     # -----------------------------
     st.subheader("Top Escalating Risks")
 
@@ -156,7 +168,7 @@ if uploaded_file:
         st.dataframe(top_risks[["Theme / Topic","Source_Type","Potential impact","Urgency","IMS","Acceleration","Weighted_Risk"]])
 
     # -----------------------------
-    # OLD SANKEY (UNCHANGED)
+    # ORIGINAL SANKEY
     # -----------------------------
     st.subheader("General Intelligence Flow")
 
