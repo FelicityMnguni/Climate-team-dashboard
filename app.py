@@ -23,19 +23,31 @@ if uploaded_file:
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
     # -----------------------------
-    # TOP KPI CARDS
+    # TOP KPI CARDS (Styled)
     # -----------------------------
     total_reports = len(df)
     high_urgency = df[df.get("Urgency_W", 0) >= 0.8].shape[0]
-
     risks_pct = round((df.get('Category', '') == "Risk").mean() * 100, 1)
     opp_pct = round((df.get('Category', '') == "Opportunity").mean() * 100, 1)
     trends_pct = round((df.get('Category', '') == "Trend").mean() * 100, 1)
 
-    col1, col2, col3, col4, col5 = st.columns([1,1,2,1,1])
-    col1.metric("Reports Logged", total_reports)
-    col2.metric("High Urgency Alerts", high_urgency)
-    col3.metric("Risks | Opportunities | Trends", f"{risks_pct}% | {opp_pct}% | {trends_pct}%")
+    kpi_data = [
+        {"label": "Reports Logged", "value": total_reports, "color": "#457b9d"},
+        {"label": "High Urgency Alerts", "value": high_urgency, "color": "#e63946"},
+        {"label": "Risks | Opportunities | Trends", "value": f"{risks_pct}% | {opp_pct}% | {trends_pct}%", "color": "#2a9d8f"}
+    ]
+
+    kpi_cols = st.columns(len(kpi_data))
+    for col, kpi in zip(kpi_cols, kpi_data):
+        col.markdown(
+            f"""
+            <div style='background-color:{kpi['color']}; color:white; padding:20px; 
+                        text-align:center; border-radius:10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);'>
+                <h3 style='margin:0'>{kpi['label']}</h3>
+                <h2 style='margin:0'>{kpi['value']}</h2>
+            </div>
+            """, unsafe_allow_html=True
+        )
 
     # -----------------------------
     # DYNAMIC SDG TILES
@@ -48,9 +60,9 @@ if uploaded_file:
         for i, sdg in enumerate(unique_sdgs):
             color = sdg_colors[i % len(sdg_colors)]
             sdg_html += f"<div style='background-color:{color}; color:black; padding:10px; margin:2px; display:inline-block; border-radius:5px;'>SDG {sdg.strip()}</div>"
-        col4.markdown(sdg_html, unsafe_allow_html=True)
+        st.markdown(sdg_html, unsafe_allow_html=True)
     else:
-        col4.markdown("<div style='padding:10px;'>No SDGs reported</div>", unsafe_allow_html=True)
+        st.markdown("<div style='padding:10px;'>No SDGs reported</div>", unsafe_allow_html=True)
 
     # -----------------------------
     # TRENDS OVER TIME (WEEKLY)
