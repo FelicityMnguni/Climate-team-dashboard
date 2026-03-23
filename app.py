@@ -146,7 +146,7 @@ if uploaded_file:
         # -----------------------------
         # NEW: RISK DRIVERS TABLE (FIXES SANKEY LIMITATION)
         # -----------------------------
-        st.subheader("Risk Drivers (Theme → Impact → Urgency)")
+        st.subheader("Risk Drivers")
 
         driver_df = risk_df.groupby(
             ["Theme / Topic","Potential impact","Urgency"]
