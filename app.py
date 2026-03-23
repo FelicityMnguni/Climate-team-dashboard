@@ -116,7 +116,7 @@ if uploaded_file:
     # -----------------------------
     # EXECUTIVE RISK FLOW
     # -----------------------------
-    st.subheader("Risk Flow (Source → Theme → Impact → Urgency)")
+    st.subheader("Executive Risk Flow (Source → Theme → Impact → Urgency)")
 
     risk_df = filtered_df[filtered_df["Category"] == "Risk"].dropna(subset=["Source_Type","Theme / Topic","Potential impact","Urgency"])
 
@@ -143,10 +143,23 @@ if uploaded_file:
         ))
         st.plotly_chart(fig_exec, use_container_width=True)
 
+        # -----------------------------
+        # NEW: RISK DRIVERS TABLE (FIXES SANKEY LIMITATION)
+        # -----------------------------
+        st.subheader("Risk Drivers (Theme → Impact → Urgency)")
+
+        driver_df = risk_df.groupby(
+            ["Theme / Topic","Potential impact","Urgency"]
+        )["Weighted_Risk"].sum().reset_index()
+
+        driver_df = driver_df.sort_values("Weighted_Risk", ascending=False)
+
+        st.dataframe(driver_df, use_container_width=True)
+
     # -----------------------------
     # HEATMAP
     # -----------------------------
-    st.subheader("Risk Intensity Over Time")
+    st.subheader("Risk Intensity Over Time (Theme vs Week)")
 
     if not risk_df.empty:
         heat_df = risk_df.copy()
@@ -155,7 +168,7 @@ if uploaded_file:
         pivot = heat_df.pivot_table(index="Theme / Topic", columns="Week",
                                    values="Weighted_Risk", aggfunc="mean", fill_value=0)
 
-        fig_heat = px.imshow(pivot, aspect="auto")
+        fig_heat = px.imshow(pivot, aspect="auto", color_continuous_scale="Reds")
         st.plotly_chart(fig_heat, use_container_width=True)
 
     # -----------------------------
